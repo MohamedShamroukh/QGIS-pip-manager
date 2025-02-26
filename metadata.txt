@@ -1,19 +1,21 @@
 [general]
-name=QGIS Pip Manager
-qgisMinimumVersion=3.36
-version=1.0.0
-description=A QGIS plugin to manage Python packages within the QGIS environment.
-about=A QGIS plugin to manage Python packages within the QGIS environment.
-category=Utilities
+name=POI VizNet  # Plugin Name
+qgisMinimumVersion=3.0  # Adjust the QGIS minimum version, 3.0 or later is advisable.
+version=1.2.1 # Plugin Version
+description=A tool for constructing and visualising a graph of sightlines between urban points of interest and street network. # Concise Plugin Description
+about=POI Visibility Network is a QGIS plug-in that constructs graphs (networks) of unobstructed lines of sight between two types of decision points during urban travel - junctions and turning points within the street network (SN), and origins and destinations of travel, i.e. points of interest (POI). POIs are locations designated as relevant for the analysis, i.e. buildings, entrances, land parcels, amenities, stations, and other. These are point-based, linear or polygon entities, as the user might wish to encode them in the input data. # Elaborate Description
+category=Analysis  # Plugin Category
 
 [metadata]
-author=Mohamed Shamroukh
-email=m.shamroukh@lboro.ac.uk
-company=Loughborough University
-linkedin=https://www.linkedin.com/in/mohamed-shamroukh-348083126/
+author=Achituv Cohen and Asya Natapov  # Author Names
+email=achituvc@example.com # Author Email (replace with actual email address)
+company=UniversityName  # Affiliation or company
+homepage=https://example.com  #Plugin Homepage
+tracker=https://example.com/bug-tracker  # Issue/Bug Tracker
+repository=https://github.com/username/repo  # Code Repository URL
 
 [experimental]
-flag=True
+flag=False # Set this to true if your plugin is in an alpha state.  When stable set to false
 
 [dependencies]
 # Dependencies not managed by qpip
