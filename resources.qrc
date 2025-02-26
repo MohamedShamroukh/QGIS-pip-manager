@@ -1,0 +1,6 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/plugins/my_pip_manager">
+        <file>icons/icon.png</file>
+    </qresource>
+</RCC>

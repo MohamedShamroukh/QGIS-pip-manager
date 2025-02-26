@@ -1,0 +1,24 @@
+[general]
+name=QGIS Pip Manager
+qgisMinimumVersion=3.36
+version=1.0.0
+description=A QGIS plugin to manage Python packages within the QGIS environment.
+about=A QGIS plugin to manage Python packages within the QGIS environment.
+category=Utilities
+
+[metadata]
+author=Mohamed Shamroukh
+email=m.shamroukh@lboro.ac.uk
+company=Loughborough University
+linkedin=https://www.linkedin.com/in/mohamed-shamroukh-348083126/
+
+[experimental]
+flag=True
+
+[dependencies]
+# Dependencies not managed by qpip
+# python_plugins=plugin1,plugin2
+# python_modules=module1,module2
+
+[icon]
+name=icon.png
