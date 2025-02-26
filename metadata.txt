@@ -1,6 +1,7 @@
 [general]
 name=QGIS Pip Manager
-qgisMinimumVersion=3.0  ; Adjusted to a more general QGIS 3.x compatibility
+qgisMinimumVersion=3.0
+qgisMaximumVersion=3.99
 version=1.0.0
 description=A QGIS plugin to manage Python packages within the QGIS environment, simplifying the installation, uninstallation, and searching of packages without command-line interaction.
 about=The QGIS Pip Manager plugin provides a user-friendly interface for managing Python packages, extending QGIS functionality for users of all levels. It automates Python path detection and error handling to ensure a smooth experience.
@@ -16,8 +17,6 @@ linkedin=https://www.linkedin.com/in/mohamed-shamroukh-348083126/
 flag=False  ; Assuming it is stable now after testing
 
 [dependencies]
-qgismaxversion=3.99 ; Set maximum value
-
 # Dependencies not managed by qpip
 # python_plugins=plugin1,plugin2
 # python_modules=module1,module2
