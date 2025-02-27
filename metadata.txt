@@ -1,20 +1,55 @@
 [general]
 name=QGIS Pip Manager
+email=m.shamroukh@lboro.ac.uk
+author=Mohamed Shamroukh and Asya Natapov
 qgisMinimumVersion=3.0
-qgisMaximumVersion=3.99
+description=A QGIS plugin to manage Python packages within the QGIS environment, simplifying the installation, uninstallation, and searching of packages without command-line interaction. Multiline is allowed: lines starting with spaces belong to the same field. HTML formatting is not allowed.
+about=The QGIS Pip Manager plugin provides a user-friendly interface for managing Python packages, extending QGIS functionality for users of all levels. It automates Python path detection and error handling to ensure a smooth experience. Multiline is allowed, HTML is not.
 version=1.0.0
-description=A QGIS plugin to manage Python packages within the QGIS environment, simplifying the installation, uninstallation, and searching of packages without command-line interaction.
-about=The QGIS Pip Manager plugin provides a user-friendly interface for managing Python packages, extending QGIS functionality for users of all levels. It automates Python path detection and error handling to ensure a smooth experience.
+#tracker=  ; Not provided, removing. If you have one, add it here.
+repository=https://github.com/MohamedShamroukh/QGIS-pip-manager
+; end of mandatory metadata
+
+; start of optional metadata
 category=Utilities
+#changelog= ; Keeping this commented out as you haven't provided changelog data.  If you add it, follow the format in the template.
+; Tags are in comma separated value format, spaces are allowed within the
+; tag name.
+; Tags should be in English language. Please also check for existing tags and
+; synonyms before creating a new one.
+tags=pip, package management, python packages, utilities
+
+; these metadata can be empty, they will eventually become mandatory.
+homepage=https://github.com/MohamedShamroukh/QGIS-pip-manager
+icon=icon.png
+
+; experimental flag (applies to the single version)
+experimental=False
+
+; deprecated flag (applies to the whole plugin and not only to the uploaded version)
+deprecated=False
+
+; if empty, it will be automatically set to major version + .99
+qgisMaximumVersion=3.99
+
+; Since QGIS 3.8, a comma separated list of plugins to be installed
+; (or upgraded) can be specified.
+; The example below will try to install (or upgrade) "MyOtherPlugin" version 1.12
+; and any version of "YetAnotherPlugin".
+; Both "MyOtherPlugin" and "YetAnotherPlugin" names come from their own metadata's
+; name field
+#plugin_dependencies=MyOtherPlugin==1.12,YetAnotherPlugin  ; Commenting this out because it is unlikely you depend on two specific plugins to work
 
 [metadata]
-author=Mohamed Shamroukh and Asya Natapov
-email=m.shamroukh@lboro.ac.uk
+#This section is redundant and unneeded with the general section providing all required details.  removing this redundant section.
+#author=Mohamed Shamroukh and Asya Natapov
+#email=m.shamroukh@lboro.ac.uk
 company=Loughborough University
 linkedin=https://www.linkedin.com/in/mohamed-shamroukh-348083126/
 
 [experimental]
-flag=False  ; Assuming it is stable now after testing
+#The experimental flag is already specified in the general section.  Removing this redundant section.
+#flag=False  ; Assuming it is stable now after testing
 
 [dependencies]
 # Dependencies not managed by qpip
@@ -22,26 +57,29 @@ flag=False  ; Assuming it is stable now after testing
 # python_modules=module1,module2
 
 [icon]
-name=icon.png
+#This is a simple key=value, redundant as it's in general
+#name=icon.png
 
 [project]
-url=https://github.com/MohamedShamroukh/QGIS-pip-manager
+#The repository URL is already defined in the general section.  Removing this section as it's less important than the central definition.
+#url=https://github.com/MohamedShamroukh/QGIS-pip-manager
 
 [software]
-name=Python
-version=3.7+
+#Irrelevant to the provided template, removing.  If you need this information, find a proper place for it, such as the README, documentation, or install instructions.  Not well suited to a metadata file like this.
+#name=Python
+#version=3.7+
 
 [installation]
-description=To install: Download ZIP, Plugins > Manage and Install Plugins > Install from ZIP. See README for usage.
-troubleshooting=Ensure req. libs installed, verify Python path, check internet. See README for details.
+description=To install: Download ZIP, Plugins > Manage and Install Plugins > Install from ZIP. See README for usage. Multiline is allowed: lines starting with spaces belong to the same field.
+troubleshooting=Ensure req. libs installed, verify Python path, check internet. See README for details. Multiline is allowed: lines starting with spaces belong to the same field.
 
 [usage]
-description=Find in 'My Plugins'. Open dialog, search/install/uninstall pkgs. Manual Python path if needed.
-configuration=Automatic Python path or manual setup. Settings are persistent.
+description=Find in 'My Plugins'. Open dialog, search/install/uninstall pkgs. Manual Python path if needed. Multiline is allowed: lines starting with spaces belong to the same field.
+configuration=Automatic Python path or manual setup. Settings are persistent. Multiline is allowed: lines starting with spaces belong to the same field.
 
 [contributing]
-description=Fork repo, branch, commit changes, submit pull request. See README for guidelines.
+description=Fork repo, branch, commit changes, submit pull request. See README for guidelines. Multiline is allowed: lines starting with spaces belong to the same field.
 
 [license]
 name=MIT License
-file=LICENSE 
+file=LICENSE
