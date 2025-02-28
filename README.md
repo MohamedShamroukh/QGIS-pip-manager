@@ -75,7 +75,7 @@ This plugin is licensed under the [MIT License](LICENSE).
 
 ## Authors
 
-Mohamed Shamroukh and Asya Natapov
+Mohamed Shamroukh, Asya Natapov and Taimaz Larimian
 
 ## Contact
 
