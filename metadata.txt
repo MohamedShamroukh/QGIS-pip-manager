@@ -1,47 +1,40 @@
 [general]
 name=QGIS Pip Manager
+email=m.shamroukh@lboro.ac.uk
+author=Mohamed Shamroukh and Asya Natapov
 qgisMinimumVersion=3.0
 qgisMaximumVersion=3.99
-version=1.0.0
 description=A QGIS plugin to manage Python packages within the QGIS environment, simplifying the installation, uninstallation, and searching of packages without command-line interaction.
 about=The QGIS Pip Manager plugin provides a user-friendly interface for managing Python packages, extending QGIS functionality for users of all levels. It automates Python path detection and error handling to ensure a smooth experience.
+version=1.0.0
+repository=https://github.com/MohamedShamroukh/QGIS-pip-manager
+tracker=https://github.com/MohamedShamroukh/QGIS-pip-manager/issues
+
+; Optional metadata
 category=Utilities
+changelog=1.0.0 - Initial release
 
-[metadata]
-author=Mohamed Shamroukh and Asya Natapov
-email=m.shamroukh@lboro.ac.uk
-company=Loughborough University
-linkedin=https://www.linkedin.com/in/mohamed-shamroukh-348083126/
-
-[experimental]
-flag=False  ; Assuming it is stable now after testing
+tags=qgis, python, package manager, utilities
+homepage=https://github.com/MohamedShamroukh/QGIS-pip-manager
+icon=icon.png
+experimental=False
+deprecated=False
+plugin_dependencies=
 
 [dependencies]
-
-Dependencies not managed by qpip
 python_plugins=plugin1,plugin2
 python_modules=module1,module2
 
-[icon]
-name=icon.png
-
-[project]
-url=https://github.com/MohamedShamroukh/QGIS-pip-manager
-
-[software]
-name=Python
-version=3.7+
-
 [installation]
 description=To install: Download ZIP, Plugins > Manage and Install Plugins > Install from ZIP. See README for usage.
-troubleshooting=Ensure req. libs installed, verify Python path, check internet. See README for details.
+troubleshooting=Ensure required libraries are installed, verify Python path, check internet connectivity. See README for details.
 
 [usage]
-description=Find in 'My Plugins'. Open dialog, search/install/uninstall pkgs. Manual Python path if needed.
+description=Find in 'My Plugins'. Open dialog, search/install/uninstall packages. Manual Python path if needed.
 configuration=Automatic Python path or manual setup. Settings are persistent.
 
 [contributing]
-description=Fork repo, branch, commit changes, submit pull request. See README for guidelines.
+description=Fork repo, create a branch, commit changes, submit a pull request. See README for guidelines.
 
 [license]
 name=MIT License
