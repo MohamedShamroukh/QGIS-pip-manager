@@ -9,7 +9,7 @@ from PyQt5.QtCore import QObject
 from PyQt5.QtWidgets import QAction, QMessageBox, QInputDialog
 from PyQt5.QtGui import QIcon
 import importlib
-
+import os.path
 
 def check_library(library_name):
     """Checks if a Python library is installed."""
@@ -55,8 +55,17 @@ class MyPipManagerPlugin(QObject):
 
     def initGui(self):
         """Called when the plugin is loaded."""
+
+        # **Improved Icon Handling:**
+        icon_path = os.path.join(os.path.dirname(__file__), 'icon.png')  # Explicit path relative to plugin file
+        if not os.path.exists(icon_path):
+            print(f"Icon file not found at: {icon_path}") #Debugging
+            icon = QIcon() #Use a blank icon.
+        else:
+            icon = QIcon(icon_path) # Load the icon from the filepath
+
         # Create action that will start plugin configuration
-        self.action = QAction(QIcon(":/plugins/pip_manager/icon.png"),  # Use the icon
+        self.action = QAction(icon,
                               "Pip Manager", self.iface.mainWindow())
         self.action.triggered.connect(self.run)
         self.iface.addPluginToMenu("My Plugins", self.action)
