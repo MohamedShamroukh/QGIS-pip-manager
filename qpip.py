@@ -36,9 +36,11 @@ class QGISPipManager:
 
     def search_package(self, package_name):
         try:
+            print(f"Searching for package: {package_name}...")  # Log start
             process = subprocess.run([self.qgis_python_path, '-m', 'pip', 'search', package_name], capture_output=True, text=True)
             output = process.stdout
             print(f"Search results for {package_name}: {output}")  # Debugging
+            print(f"Search completed for {package_name}.")  # Log end
             return output
         except Exception as e:
             print(f"Error searching for package: {e}")
@@ -48,11 +50,12 @@ class QGISPipManager:
         """Installs a package into the QGIS environment."""
         try:
             package_spec = f"{package_name}=={version}" if version else package_name
-            print(f"Attempting to install {package_spec}")  # Debugging
+            print(f"Installing {package_spec}...")  # Log start
             process = subprocess.run([self.qgis_python_path, '-m', 'pip', 'install', package_spec], capture_output=True, text=True)
 
             if process.returncode == 0:
-                print(f"Successfully installed {package_spec}")
+                print(f"Successfully installed {package_spec}")  # Log success
+                print(f"Installation completed for {package_spec}.")  # Log end
                 return True
             else:
                 error_message = f"Error installing {package_spec}: {process.stderr}"
@@ -66,9 +69,11 @@ class QGISPipManager:
     def uninstall_package(self, package_name):
         """Uninstalls a package from the QGIS environment."""
         try:
+            print(f"Uninstalling {package_name}...")  # Log start
             process = subprocess.run([self.qgis_python_path, '-m', 'pip', 'uninstall', '-y', package_name], capture_output=True, text=True)
             if process.returncode == 0:
-                print(f"Successfully uninstalled {package_name}")
+                print(f"Successfully uninstalled {package_name}")  # Log success
+                print(f"Uninstallation completed for {package_name}.")  # Log end
                 return True
             else:
                 print(f"Error uninstalling {package_name}: {process.stderr}")  #Print stderr
