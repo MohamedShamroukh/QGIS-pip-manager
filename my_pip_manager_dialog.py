@@ -9,6 +9,7 @@ class Worker(QObject):
     result = pyqtSignal(str)
     error = pyqtSignal(str)
     detailed_error = pyqtSignal(str)
+    status = pyqtSignal(str)
 
     def __init__(self, manager, operation, *args):
         super().__init__()
@@ -20,24 +21,34 @@ class Worker(QObject):
         try:
             if self.operation == "install":
                 print(f"Worker: Starting install operation for {self.args}")  # Debugging
+                self.status.emit(f"Installing {self.args[0]}...")
                 success = self.manager.install_package(*self.args)
                 if not success:
                     error_message = f"Worker: Failed to install {self.args[0]}"
                     print(error_message)
                     self.detailed_error.emit(error_message)
+                    self.status.emit(f"Failed to install {self.args[0]}. See error message.")
                     print("emit detailed error")
                 else:
                     print(f"Worker: Successfully installed {self.args[0]}")
+                    self.status.emit(f"Successfully installed {self.args[0]}.")
             elif self.operation == "uninstall":
+                self.status.emit(f"Uninstalling {self.args[0]}...")
                 success = self.manager.uninstall_package(*self.args)
                 if not success:
                     self.error.emit(f"Failed to uninstall {self.args[0]}")
+                    self.status.emit(f"Failed to uninstall {self.args[0]}. See error message.")
+                else:
+                    self.status.emit(f"Successfully uninstalled {self.args[0]}.")
 
             elif self.operation == "search":
+                self.status.emit(f"Searching for {self.args[0]}...")
                 result = self.manager.search_package(*self.args)
                 self.result.emit(result)
+                self.status.emit(f"Search completed for {self.args[0]}.")
         except Exception as e:
             self.error.emit(str(e))
+            self.status.emit(f"An error occurred: {str(e)}")
             print(f"Error in thread: {e}")
         finally:
             print("Worker Finished")  # Debugging
@@ -94,6 +105,7 @@ class PipManagerDialog(QDialog):
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.worker.result.connect(self.set_search_text)
+        self.worker.status.connect(self.set_search_text)
         self.worker.error.connect(self.show_error)
         self.thread.start()
 
@@ -104,6 +116,7 @@ class PipManagerDialog(QDialog):
         self.thread = QThread()
         self.worker = Worker(self.qgis_pip_manager, "install", package_name)
         self.worker.detailed_error.connect(self.show_error)
+        self.worker.status.connect(self.set_search_text)
         self.worker.moveToThread(self.thread)
 
         self.thread.started.connect(self.worker.run)
@@ -122,6 +135,7 @@ class PipManagerDialog(QDialog):
             self.thread = QThread()
             self.worker = Worker(self.qgis_pip_manager, "uninstall", package_name)
             self.worker.moveToThread(self.thread)
+            self.worker.status.connect(self.set_search_text)
             self.thread.started.connect(self.worker.run)
             self.worker.finished.connect(self.thread.quit)
             self.worker.finished.connect(self.worker.deleteLater)
@@ -130,8 +144,7 @@ class PipManagerDialog(QDialog):
             self.thread.start()
 
     def set_search_text(self, text):
-        self.log_text.clear()
-        self.log_text.setText(text)
+        self.log_text.append(text)
 
     def show_error(self, message):
         print("show_error triggered:", message)  # Add this line
