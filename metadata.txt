@@ -1,19 +1,18 @@
 [general]
-name=QGIS Pip Manager
+name=QGIS pip Manager
 email=m.shamroukh@lboro.ac.uk
 author=Mohamed Shamroukh, Asya Natapov and Taimaz Larimian
 qgisMinimumVersion=3.0
 qgisMaximumVersion=3.99
 description=A QGIS plugin to manage Python packages within the QGIS environment, simplifying the installation, uninstallation, and searching of packages without command-line interaction.
 about=The QGIS Pip Manager plugin provides a user-friendly interface for managing Python packages, extending QGIS functionality for users of all levels. It automates Python path detection and error handling to ensure a smooth experience.
-version=0.0.3
+version=0.0.4  ; UPDATED VERSION
 repository=https://github.com/MohamedShamroukh/QGIS-pip-manager
 tracker=https://github.com/MohamedShamroukh/QGIS-pip-manager/issues
 
 ; Optional metadata
 category=Utilities
-changelog=0.0.3
-
+changelog=0.0.4 - Significant UX and stability improvements:\n* Implemented Upgrade/Downgrade functionality.\n* Added asynchronous package listing to prevent UI freezing.\n* Added package list filtering and search highlighting.\n* Improved subprocess handling to suppress pop-up windows (quiet mode).\n* Enhanced Windows PermissionError handling with user guidance.\n* Added dedicated buttons for Log Clearing and Refreshing list.\n\n0.0.3 ; PREVIOUS CHANGELOG
 tags=qgis, python, package manager, utilities
 homepage=https://github.com/MohamedShamroukh/QGIS-pip-manager
 icon=icon.png
@@ -30,7 +29,7 @@ description=To install: Download ZIP, Plugins > Manage and Install Plugins > Ins
 troubleshooting=Ensure required libraries are installed, verify Python path, check internet connectivity. See README for details.
 
 [usage]
-description=Find in 'My Plugins'. Open dialog, search/install/uninstall packages. Manual Python path if needed.
+description=Find in 'My Plugins'. Open dialog, search/install/uninstall/upgrade packages. Manual Python path if needed.
 configuration=Automatic Python path or manual setup. Settings are persistent.
 
 [contributing]
