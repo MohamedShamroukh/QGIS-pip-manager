@@ -1,11 +1,13 @@
 # qpip.py
 import subprocess
 import os
-# Import QMessageBox for displaying the user-facing error message
-from qgis.PyQt.QtWidgets import QMessageBox 
+import json # json is only used in get_installed_packages, but kept here for clarity.
+from qgis.PyQt.QtWidgets import QMessageBox # Import for user-facing message
 
 class QGISPipManager:
     def __init__(self, qgis_python_path):
+        self.is_initialized_ok = False # <-- NEW STATUS FLAG: Set to True only on success
+        
         # Use provided path, or fallback to a default if needed.  Raise error if still not valid
         self.qgis_python_path = qgis_python_path
         if not self.qgis_python_path or not os.path.exists(self.qgis_python_path):
@@ -18,6 +20,7 @@ class QGISPipManager:
             # ORIGINAL PROBLEM LINE: subprocess.run([self.qgis_python_path, '-m', 'pip', '--version'], check=True, capture_output=True)
             subprocess.run([self.qgis_python_path, '-m', 'pip', '--version'], check=True, capture_output=True)
             print("pip version check successful")  # Debugging
+            self.is_initialized_ok = True # <-- Set to True on successful command execution
 
         # --- FIX APPLIED HERE: Catch PermissionError (WinError 5) ---
         except PermissionError as e:
@@ -38,18 +41,26 @@ class QGISPipManager:
             msg.setWindowTitle("Permission Error")
             msg.exec_()
             
-            # Re-raise a new exception to signal the main plugin logic that initialization failed
-            raise RuntimeError("Pip Manager initialization failed due to PermissionError.") from e
+            # Keep self.is_initialized_ok as False and do NOT raise an exception.
+            
         # -----------------------------------------------------------
 
         except FileNotFoundError as e:
             print(f"QGIS Python or pip not found: {e}")
             print(f"Error: {e}")  # More specific error message
-            raise  # Re-raise the exception to signal the issue
-        
+            # Keep self.is_initialized_ok as False and do NOT raise an exception.
+            
+    # --- NEW HELPER METHOD ---
+    def is_ready(self):
+        """Returns True if the initialization check (pip --version) was successful."""
+        return self.is_initialized_ok
+
     def get_installed_packages(self):
         """Returns a list of installed packages within the QGIS environment."""
-        import json
+        if not self.is_ready():
+            print("ERROR: QGISPipManager is not ready. Cannot get installed packages.")
+            return []
+
         try:
             process = subprocess.run([self.qgis_python_path, '-m', 'pip', 'list', '--format=json'], capture_output=True, text=True)
             output = process.stdout
@@ -62,6 +73,10 @@ class QGISPipManager:
             return []
 
     def search_package(self, package_name):
+        if not self.is_ready():
+            print("ERROR: QGISPipManager is not ready. Cannot search for package.")
+            return ""
+
         try:
             print(f"Searching for package: {package_name}...")  # Log start
             process = subprocess.run([self.qgis_python_path, '-m', 'pip', 'search', package_name], capture_output=True, text=True)
@@ -75,6 +90,10 @@ class QGISPipManager:
 
     def install_package(self, package_name, version=None):
         """Installs a package into the QGIS environment."""
+        if not self.is_ready():
+            print("ERROR: QGISPipManager is not ready. Cannot install package.")
+            return False
+
         try:
             package_spec = f"{package_name}=={version}" if version else package_name
             print(f"Installing {package_spec}...")  # Log start
@@ -95,6 +114,10 @@ class QGISPipManager:
 
     def uninstall_package(self, package_name):
         """Uninstalls a package from the QGIS environment."""
+        if not self.is_ready():
+            print("ERROR: QGISPipManager is not ready. Cannot uninstall package.")
+            return False
+
         try:
             print(f"Uninstalling {package_name}...")  # Log start
             process = subprocess.run([self.qgis_python_path, '-m', 'pip', 'uninstall', '-y', package_name], capture_output=True, text=True)
@@ -111,6 +134,10 @@ class QGISPipManager:
 
     def get_package_versions(self, package_name):
         """Retrieves available versions for a package from PyPI."""
+        if not self.is_ready():
+            print("ERROR: QGISPipManager is not ready. Cannot get package versions.")
+            return []
+
         try:
             process = subprocess.run([self.qgis_python_path, '-m', 'pip', 'index', 'versions', package_name], capture_output=True, text=True)
             output = process.stdout
