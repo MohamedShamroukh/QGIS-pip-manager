@@ -1,4 +1,4 @@
-# my_pip_manager_plugin.py
+# my_pip_manager_plugin.py 
 import subprocess
 import os
 import platform
@@ -10,11 +10,14 @@ from PyQt5.QtWidgets import QAction, QMessageBox, QInputDialog
 from PyQt5.QtGui import QIcon
 import importlib
 import os.path
+from .qpip import QGISPipManager # Ensure QGISPipManager is imported for use in run()
 
-# --- NEW IMPORT ---
-# Import the QGISPipManager class which contains the error handling logic
-from .qpip import QGISPipManager
-# ------------------
+# Define creation flags for subprocess on Windows to hide the console window
+if platform.system() == "Windows":
+    # CREATE_NO_WINDOW is 0x08000000
+    SUBPROCESS_FLAGS_PLUGIN = 0x08000000
+else:
+    SUBPROCESS_FLAGS_PLUGIN = 0
 
 
 def check_library(library_name):
@@ -30,11 +33,13 @@ def install_library(library_name, qgis_python_path):
     """Installs a Python library using pip within the QGIS environment."""
     try:
         os_type = platform.system()
+        # Get the silent flags
+        flags = SUBPROCESS_FLAGS_PLUGIN if os_type == 'Windows' else 0
+
         if os_type == 'Windows':
-            # Note: This method is used for required libraries, not the main dialog.
-            # It should ideally also handle PermissionError, but is left as-is.
+            # FIX: Added creationflags=flags to suppress console window
             subprocess.check_call([qgis_python_path, "-m", "pip", "install", library_name],
-                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=flags)
         elif os_type == 'Linux' or os_type == 'Darwin':  # Darwin is macOS
             subprocess.check_call([qgis_python_path, "-m", "pip3", "install", library_name],
                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -50,6 +55,12 @@ def install_library(library_name, qgis_python_path):
     except FileNotFoundError:
         print("QGIS Python executable not found.")
         return False
+    except PermissionError:
+        # Catch PermissionError during installation (if it occurs during the pre-check)
+        QMessageBox.critical(iface.mainWindow(), "Permission Denied",
+                             "Access is denied when trying to execute the QGIS Python interpreter for installation. "
+                             "Please close QGIS and try running it 'As Administrator'.")
+        return False
 
 
 class MyPipManagerPlugin(QObject):
@@ -58,7 +69,6 @@ class MyPipManagerPlugin(QObject):
         self.iface = iface
         self.dlg = None
         self.action = None
-        self.pip_manager = None # <-- NEW: Variable to hold the QGISPipManager instance
         self.required_libraries = ["requests", "geopandas", "shapely", "packaging"]
         self.qgis_python_path = self.get_qgis_python_path()
 
@@ -97,8 +107,7 @@ class MyPipManagerPlugin(QObject):
                 if self.qgis_python_path:
                     for library in missing_libraries:
                         if not install_library(library, self.qgis_python_path):
-                            QMessageBox.critical(self.iface.mainWindow(), "Error",
-                                                 f"Failed to install {library}.  The plugin may not function correctly.")
+                            # The error is displayed inside install_library, just return here
                             return
 
                     QMessageBox.information(self.iface.mainWindow(), "Success",
@@ -127,28 +136,30 @@ class MyPipManagerPlugin(QObject):
                 QMessageBox.critical(self.iface.mainWindow(), "Error", "QGIS Python path is not set. Plugin cannot run.")
                 return
 
-        # --- MODIFICATION START ---
-        # 1. Instantiate the QGISPipManager (only if not already done)
-        if self.pip_manager is None:
-            # The __init__ call here contains the logic to show the QMessageBox on PermissionError
-            self.pip_manager = QGISPipManager(self.qgis_python_path) 
-        
-        # 2. Check the status flag returned by the QGISPipManager
-        if not self.pip_manager.is_ready():
-            # If not ready, the error message was already shown, so we just stop the run method.
-            return 
-        
-        # 3. If ready, create the dialog (passing the manager instance)
-        if self.dlg is None:
-            # NOTE: Assuming PipManagerDialog accepts the manager object, not just the path.
-            # If the dialog only accepts path, you might need to adjust this line:
-            # self.dlg = PipManagerDialog(qgis_python_path=self.qgis_python_path) 
-            self.dlg = PipManagerDialog(pip_manager=self.pip_manager) # You must pass the manager or the path.
-                                                                     # If you only pass the path, you lose the manager instance.
-                                                                     # Assuming your dialog needs the full manager object:
-        # ----------------------------
+        # NEW: Check for existing dialog before trying to create a new one (avoid re-init issues)
+        if self.dlg and self.dlg.isVisible():
+            self.dlg.raise_()
+            self.dlg.activateWindow()
+            return
 
-        self.dlg.show()
+        # CRITICAL FIX: Initialize QGISPipManager here to catch PermissionError before dialog init
+        try:
+            # Check for initial errors like PermissionError or ValueError
+            QGISPipManager(qgis_python_path=self.qgis_python_path)
+
+            if self.dlg is None:
+                # If no error, proceed to create the dialog (which will also create QGISPipManager inside)
+                self.dlg = PipManagerDialog(parent=self.iface.mainWindow(), qgis_python_path=self.qgis_python_path)  # Pass the path
+            self.dlg.show()
+        except PermissionError as e:
+            # Catch the user-friendly PermissionError raised from qpip.py
+            QMessageBox.critical(self.iface.mainWindow(), "Error", str(e))
+        except ValueError as e:
+             # Catch ValueError for invalid path
+            QMessageBox.critical(self.iface.mainWindow(), "Error", str(e))
+        except Exception as e:
+            # Catch other potential errors during init (e.g., FileNotFoundError for python path)
+            QMessageBox.critical(self.iface.mainWindow(), "Fatal Error", f"An unexpected error occurred during initialization: {str(e)}")
 
     def get_qgis_python_path(self):
         """Gets the QGIS Python path from settings or tries to determine it automatically."""
