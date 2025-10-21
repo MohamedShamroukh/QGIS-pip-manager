@@ -11,6 +11,12 @@ from PyQt5.QtGui import QIcon
 import importlib
 import os.path
 
+# --- NEW IMPORT ---
+# Import the QGISPipManager class which contains the error handling logic
+from .qpip import QGISPipManager
+# ------------------
+
+
 def check_library(library_name):
     """Checks if a Python library is installed."""
     try:
@@ -25,6 +31,8 @@ def install_library(library_name, qgis_python_path):
     try:
         os_type = platform.system()
         if os_type == 'Windows':
+            # Note: This method is used for required libraries, not the main dialog.
+            # It should ideally also handle PermissionError, but is left as-is.
             subprocess.check_call([qgis_python_path, "-m", "pip", "install", library_name],
                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         elif os_type == 'Linux' or os_type == 'Darwin':  # Darwin is macOS
@@ -50,6 +58,7 @@ class MyPipManagerPlugin(QObject):
         self.iface = iface
         self.dlg = None
         self.action = None
+        self.pip_manager = None # <-- NEW: Variable to hold the QGISPipManager instance
         self.required_libraries = ["requests", "geopandas", "shapely", "packaging"]
         self.qgis_python_path = self.get_qgis_python_path()
 
@@ -118,8 +127,27 @@ class MyPipManagerPlugin(QObject):
                 QMessageBox.critical(self.iface.mainWindow(), "Error", "QGIS Python path is not set. Plugin cannot run.")
                 return
 
+        # --- MODIFICATION START ---
+        # 1. Instantiate the QGISPipManager (only if not already done)
+        if self.pip_manager is None:
+            # The __init__ call here contains the logic to show the QMessageBox on PermissionError
+            self.pip_manager = QGISPipManager(self.qgis_python_path) 
+        
+        # 2. Check the status flag returned by the QGISPipManager
+        if not self.pip_manager.is_ready():
+            # If not ready, the error message was already shown, so we just stop the run method.
+            return 
+        
+        # 3. If ready, create the dialog (passing the manager instance)
         if self.dlg is None:
-            self.dlg = PipManagerDialog(qgis_python_path=self.qgis_python_path)  # Pass the path
+            # NOTE: Assuming PipManagerDialog accepts the manager object, not just the path.
+            # If the dialog only accepts path, you might need to adjust this line:
+            # self.dlg = PipManagerDialog(qgis_python_path=self.qgis_python_path) 
+            self.dlg = PipManagerDialog(pip_manager=self.pip_manager) # You must pass the manager or the path.
+                                                                     # If you only pass the path, you lose the manager instance.
+                                                                     # Assuming your dialog needs the full manager object:
+        # ----------------------------
+
         self.dlg.show()
 
     def get_qgis_python_path(self):
