@@ -25,9 +25,9 @@ Here are a few screenshots demonstrating the plugin's functionality:
 
 | Feature               | Screenshot                                                                                                                                                                                                                                                          |
 |-----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Plugin Dialog         | [![Plugin Dialog](https://github.com/MohamedShamroukh/QGIS-pip-manager/blob/main/QGIS%20pip%20Manager/plugin_dialog.png?raw=true)](https://github.com/MohamedShamroukh/QGIS-pip-manager/blob/main/QGIS%20pip%20Manager/plugin_dialog.png?raw=true)                     |
-| Uninstalling Packages | [![Uninstalling Packages](https://github.com/MohamedShamroukh/QGIS-pip-manager/blob/main/QGIS%20pip%20Manager/uninstalling_packages.png?raw=true)](https://github.com/MohamedShamroukh/QGIS-pip-manager/blob/main/QGIS%20pip%20Manager/uninstalling_packages.png?raw=true)   |
-| Installing Packages   | [![Installing Packages](https://github.com/MohamedShamroukh/QGIS-pip-manager/blob/main/QGIS%20pip%20Manager/installing_packages.png?raw=true)](https://github.com/MohamedShamroukh/QGIS-pip-manager/blob/main/QGIS%20pip%20Manager/installing_packages.png?raw=true)     |
+| New Plugin Interface  | [![New Plugin Interface](https://github.com/MohamedShamroukh/QGIS-pip-manager/blob/main/QGIS%20pip%20Manager/QGIS%20pip%20manager%20new%20interface.png?raw=true)](https://github.com/MohamedShamroukh/QGIS-pip-manager/blob/main/QGIS%20pip%20Manager/QGIS%20pip%20manager%20new%20interface.png?raw=true) |
+| Install & Upgrade     | [![Install & Upgrade](https://github.com/MohamedShamroukh/QGIS-pip-manager/blob/main/QGIS%20pip%20Manager/installing%20and%20upgrading%20packages.png?raw=true)](https://github.com/MohamedShamroukh/QGIS-pip-manager/blob/main/QGIS%20pip%20Manager/installing%20and%20upgrading%20packages.png?raw=true)   |
+| Filter & Select       | [![Filter & Select](https://github.com/MohamedShamroukh/QGIS-pip-manager/blob/main/QGIS%20pip%20Manager/filter_select_upgrade_packages.png?raw=true)](https://github.com/MohamedShamroukh/QGIS-pip-manager/blob/main/QGIS%20pip%20Manager/filter_select_upgrade_packages.png?raw=true)     |
 
 *Click on the images to view them in full size.*
 
