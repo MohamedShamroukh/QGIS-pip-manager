@@ -1,71 +1,55 @@
-# qpip.py
+# qpip.py 
 import subprocess
 import os
-import json # json is only used in get_installed_packages, but kept here for clarity.
-from qgis.PyQt.QtWidgets import QMessageBox # Import for user-facing message
+import json
+import platform
+import re # Import regex for parsing pip index versions output
+
+# Define creation flags for subprocess on Windows to hide the console window
+if platform.system() == "Windows":
+    # CREATE_NO_WINDOW is 0x08000000
+    CREATE_NO_WINDOW = 0x08000000
+    SUBPROCESS_FLAGS = CREATE_NO_WINDOW
+else:
+    SUBPROCESS_FLAGS = 0
+
 
 class QGISPipManager:
     def __init__(self, qgis_python_path):
-        self.is_initialized_ok = False # <-- NEW STATUS FLAG: Set to True only on success
-        
-        # Use provided path, or fallback to a default if needed.  Raise error if still not valid
         self.qgis_python_path = qgis_python_path
         if not self.qgis_python_path or not os.path.exists(self.qgis_python_path):
             raise ValueError("Invalid QGIS Python path provided.")
 
-        print(f"QGIS Python path: {self.qgis_python_path}")  # Debugging
+        print(f"QGIS Python path: {self.qgis_python_path}")
 
-        # Ensure pip is available
         try:
-            # ORIGINAL PROBLEM LINE: subprocess.run([self.qgis_python_path, '-m', 'pip', '--version'], check=True, capture_output=True)
-            subprocess.run([self.qgis_python_path, '-m', 'pip', '--version'], check=True, capture_output=True)
-            print("pip version check successful")  # Debugging
-            self.is_initialized_ok = True # <-- Set to True on successful command execution
-
-        # --- FIX APPLIED HERE: Catch PermissionError (WinError 5) ---
+            subprocess.run([self.qgis_python_path, '-m', 'pip', '--version'],
+                           check=True,
+                           capture_output=True,
+                           creationflags=SUBPROCESS_FLAGS)
+            print("pip version check successful")
         except PermissionError as e:
-            # Display a user-friendly error message using QMessageBox
             error_message = (
-                "The Pip Manager plugin failed to start due to a Permission Error.\n\n"
-                "**Error Details:** Access is denied when trying to execute the QGIS "
-                "Python interpreter to check the 'pip' version.\n\n"
-                "**Solution:** Please close QGIS and **Run QGIS as an Administrator** "
-                "to resolve this issue and use the plugin."
+                "Permission Error: Access is denied when trying to execute the QGIS Python interpreter. "
+                "This often happens on Windows due to User Account Control (UAC). "
+                "Please close QGIS and try running it 'As Administrator' to use the Pip Manager functionality."
             )
-            
-            # Show a critical error message box
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setText("Pip Manager Startup Failed")
-            msg.setInformativeText(error_message)
-            msg.setWindowTitle("Permission Error")
-            msg.exec_()
-            
-            # Keep self.is_initialized_ok as False and do NOT raise an exception.
-            
-        # -----------------------------------------------------------
-
+            print(f"PermissionError during pip check: {e}")
+            raise PermissionError(error_message) from e
         except FileNotFoundError as e:
             print(f"QGIS Python or pip not found: {e}")
-            print(f"Error: {e}")  # More specific error message
-            # Keep self.is_initialized_ok as False and do NOT raise an exception.
-            
-    # --- NEW HELPER METHOD ---
-    def is_ready(self):
-        """Returns True if the initialization check (pip --version) was successful."""
-        return self.is_initialized_ok
+            print(f"Error: {e}")
+            raise
 
     def get_installed_packages(self):
         """Returns a list of installed packages within the QGIS environment."""
-        if not self.is_ready():
-            print("ERROR: QGISPipManager is not ready. Cannot get installed packages.")
-            return []
-
         try:
-            process = subprocess.run([self.qgis_python_path, '-m', 'pip', 'list', '--format=json'], capture_output=True, text=True)
+            process = subprocess.run([self.qgis_python_path, '-m', 'pip', 'list', '--format=json'],
+                                     capture_output=True,
+                                     text=True,
+                                     creationflags=SUBPROCESS_FLAGS)
             output = process.stdout
             packages = json.loads(output)
-            print(f"Successfully retrieved installed packages: {packages}")  # Debugging
             return packages
 
         except Exception as e:
@@ -73,35 +57,32 @@ class QGISPipManager:
             return []
 
     def search_package(self, package_name):
-        if not self.is_ready():
-            print("ERROR: QGISPipManager is not ready. Cannot search for package.")
-            return ""
-
         try:
-            print(f"Searching for package: {package_name}...")  # Log start
-            process = subprocess.run([self.qgis_python_path, '-m', 'pip', 'search', package_name], capture_output=True, text=True)
+            print(f"Searching for package: {package_name}...")
+            # Note: pip search is deprecated and might return unstructured output, keeping the raw output for now.
+            process = subprocess.run([self.qgis_python_path, '-m', 'pip', 'search', package_name],
+                                     capture_output=True,
+                                     text=True,
+                                     creationflags=SUBPROCESS_FLAGS)
             output = process.stdout
-            print(f"Search results for {package_name}: {output}")  # Debugging
-            print(f"Search completed for {package_name}.")  # Log end
+            print(f"Search completed for {package_name}.")
             return output
         except Exception as e:
             print(f"Error searching for package: {e}")
-            return ""
+            return f"Error: {e}"
 
     def install_package(self, package_name, version=None):
         """Installs a package into the QGIS environment."""
-        if not self.is_ready():
-            print("ERROR: QGISPipManager is not ready. Cannot install package.")
-            return False
-
         try:
             package_spec = f"{package_name}=={version}" if version else package_name
-            print(f"Installing {package_spec}...")  # Log start
-            process = subprocess.run([self.qgis_python_path, '-m', 'pip', 'install', package_spec], capture_output=True, text=True)
+            print(f"Installing {package_spec}...")
+            process = subprocess.run([self.qgis_python_path, '-m', 'pip', 'install', package_spec],
+                                     capture_output=True,
+                                     text=True,
+                                     creationflags=SUBPROCESS_FLAGS)
 
             if process.returncode == 0:
-                print(f"Successfully installed {package_spec}")  # Log success
-                print(f"Installation completed for {package_spec}.")  # Log end
+                print(f"Successfully installed {package_spec}")
                 return True
             else:
                 error_message = f"Error installing {package_spec}: {process.stderr}"
@@ -114,19 +95,17 @@ class QGISPipManager:
 
     def uninstall_package(self, package_name):
         """Uninstalls a package from the QGIS environment."""
-        if not self.is_ready():
-            print("ERROR: QGISPipManager is not ready. Cannot uninstall package.")
-            return False
-
         try:
-            print(f"Uninstalling {package_name}...")  # Log start
-            process = subprocess.run([self.qgis_python_path, '-m', 'pip', 'uninstall', '-y', package_name], capture_output=True, text=True)
+            print(f"Uninstalling {package_name}...")
+            process = subprocess.run([self.qgis_python_path, '-m', 'pip', 'uninstall', '-y', package_name],
+                                     capture_output=True,
+                                     text=True,
+                                     creationflags=SUBPROCESS_FLAGS)
             if process.returncode == 0:
-                print(f"Successfully uninstalled {package_name}")  # Log success
-                print(f"Uninstallation completed for {package_name}.")  # Log end
+                print(f"Successfully uninstalled {package_name}")
                 return True
             else:
-                print(f"Error uninstalling {package_name}: {process.stderr}")  #Print stderr
+                print(f"Error uninstalling {package_name}: {process.stderr}")
                 return False
         except Exception as e:
             print(f"Error uninstalling package: {e}")
@@ -134,18 +113,40 @@ class QGISPipManager:
 
     def get_package_versions(self, package_name):
         """Retrieves available versions for a package from PyPI."""
-        if not self.is_ready():
-            print("ERROR: QGISPipManager is not ready. Cannot get package versions.")
-            return []
-
         try:
-            process = subprocess.run([self.qgis_python_path, '-m', 'pip', 'index', 'versions', package_name], capture_output=True, text=True)
+            # Use 'pip index versions' as 'pip install package==*' doesn't work for listing versions
+            process = subprocess.run([self.qgis_python_path, '-m', 'pip', 'index', 'versions', package_name],
+                                     capture_output=True,
+                                     text=True,
+                                     creationflags=SUBPROCESS_FLAGS)
             output = process.stdout
-            # Parse the output to extract available versions
-            versions = []
-            # Parse based on output format
-            return versions
+
+            # Example parsing for output: "Available versions: 1.0, 1.1, 1.2"
+            match = re.search(r'Available versions: (.*)', output)
+            if match:
+                versions_str = match.group(1).strip()
+                # Clean up the string (remove ' (latest)') and split by comma
+                versions = [v.split(' ')[0] for v in versions_str.split(',')]
+                # Filter out empty strings and return the list
+                return [v for v in versions if v]
+            else:
+                return [f"Could not parse versions for {package_name}"]
 
         except Exception as e:
             print(f"Error getting package versions: {e}")
-            return []
+            return [f"Error: {e}"]
+            
+    def get_package_details(self, package_name):
+        """Retrieves detailed information for an installed package using 'pip show'."""
+        try:
+            process = subprocess.run([self.qgis_python_path, '-m', 'pip', 'show', package_name],
+                                     capture_output=True,
+                                     text=True,
+                                     creationflags=SUBPROCESS_FLAGS)
+            
+            if process.returncode == 0:
+                return process.stdout
+            else:
+                return f"Package '{package_name}' not found or error: {process.stderr}"
+        except Exception as e:
+            return f"Error retrieving details: {e}"
