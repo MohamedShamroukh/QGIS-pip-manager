@@ -1,20 +1,23 @@
 Mohamed Shamroukh is a doctoral researcher at The Impact Hub, School of Architecture, Building and Civil Engineering, Loughborough University. He specialises in Geospatial Intelligence, GIS, Remote Sensing, Urban Planning, and GeoAI (Geospatial Artificial Intelligence). His PhD research focuses on data-driven modelling, geospatial analysis, and machine learning for pedestrian-friendly urban planning and sustainable city development. Mohamed has extensive expertise in geospatial data science, urban analytics, spatial modelling, Python programming, and geospatial databases. He has conducted research and teaching in GIS, remote sensing, and urban studies, including experience as a research and teaching assistant at South Valley University, Egypt. His projects include WiFi-based pedestrian monitoring, point of interest (POI) analysis, street network, and geospatial data integration.
-# QGIS Pip Manager Plugin
+
+# QGIS pip Manager Plugin
 
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![QGIS Version](https://img.shields.io/badge/QGIS-3.x-green)](https://qgis.org)
+[![Version](https://img.shields.io/badge/Version-0.0.4-blue)](https://github.com/MohamedShamroukh/QGIS-pip-manager/releases)
 
 ## Description
 
-The QGIS Pip Manager plugin simplifies the process of managing Python packages within your QGIS environment. It provides a user-friendly interface for searching, installing, and uninstalling packages using `pip`, the Python package installer.  This plugin aims to streamline extending QGIS functionality through Python packages without requiring users to directly interact with the command line.
+The QGIS Pip Manager plugin is a powerful utility designed to simplify Python package management directly within your QGIS environment. It provides a robust, user-friendly interface for searching, installing, uninstalling, and managing specific versions of packages using `pip`. This eliminates the need for command-line interaction and is essential for extending QGIS functionality through external Python libraries.
 
-## Features
+## Key Features
 
-*   **Effortless Package Management:** Install, uninstall, and search for Python packages directly within QGIS.
-*   **Dependency Resolution:** Simplifies dependency management for other QGIS plugins.
-*   **Intuitive Interface:** Provides a simple and intuitive graphical user interface.
-*   **Automatic Python Path Detection:** Automatically detects the correct Python executable used by QGIS.
-*   **Robust Error Handling:** Clearly displays error messages to the user when package operations fail.
+*   **Complete Package Control:** Effortlessly **Install, Uninstall, Upgrade,** or **Downgrade** packages to a specific version.
+*   **Asynchronous Operations:** Package listings and installation/uninstallation run in the background, preventing the QGIS interface from freezing.
+*   **Intuitive UX:** Features include package list **filtering,** **search highlighting,** and **log clearing** for a streamlined experience.
+*   **Quiet Execution:** Subprocess calls (pip operations) run silently on Windows, suppressing disruptive command-line pop-up windows.
+*   **Robust Error Handling:** Features improved automatic Python Path detection and clear guidance for **Permission Denied** errors on Windows (UAC).
+*   **Dependency Info:** Retrieve detailed information (`pip show`) for installed packages.
 
 ## Screenshots
 
@@ -39,27 +42,27 @@ Here are a few screenshots demonstrating the plugin's functionality:
 
 1.  After installation, find the plugin in the QGIS menu under `Plugins > QGIS Pip Manager`.
 2.  Click on `QGIS Pip Manager` to open the plugin dialog.
-3.  **Search:** Enter a package name in the search field and click `Search` to find available packages.
-4.  **Install:** Enter a package name in the search field and click `Install` to install the package.
-5.  **Uninstall:** Select a package from the list of installed packages and click `Uninstall` to remove it.
-6.  If the plugin cannot automatically find the QGIS Python executable, you will be prompted to provide the path manually.
+3.  **Installed Packages:** The list automatically populates with all installed packages (asynchronously). Use the filter box to quickly narrow the list.
+4.  **Install/Upgrade:** Enter a package name, optionally select a version from the dropdown, and click **Install/Upgrade**. A QGIS restart prompt will follow successful completion.
+5.  **Uninstall:** Enter a package name in the text field or click an item in the list, then click **Uninstall**.
 
 ## Configuration
 
-*   The plugin attempts to automatically find the QGIS Python executable path. If it fails, you will be prompted to enter the path manually.
-*   The path is stored in QGIS settings and reused in subsequent sessions.
+*   The plugin automatically detects the QGIS Python executable path.
+*   If automatic detection fails, you will be prompted to enter the path manually.
+*   The path is stored persistently in QGIS settings.
 
 ## Dependencies
 
 *   QGIS 3.x
 *   Python 3.7 or higher (matching the QGIS Python environment)
-*   Required Python packages: `requests`, `geopandas`, `shapely`, `packaging` (automatically installed if missing).  It's worth noting that `packaging` will be automatically installed if missing.
+*   Required Python packages: `requests`, `geopandas`, `shapely`, `packaging` (automatically checked and installed if missing during plugin load).
 
 ## Troubleshooting
 
-*   **Plugin doesn't load:** Ensure that the required Python packages are installed. If not, try installing them manually using the QGIS Python console and `pip`.
+*   **Plugin doesn't load/Permission Denied:** On Windows, if you encounter "Access is denied" errors, try closing QGIS and running it **"As Administrator."**
 *   **"Invalid Python Path" error:** Verify that the path to the QGIS Python executable is correct.
-*   **Package installation fails:** Check your internet connection and try again. If the problem persists, there might be compatibility issues with the package and your QGIS environment.  Also, ensure the package is compatible with your QGIS and Python versions.
+*   **Package operation fails:** Check your internet connection. If the problem persists, review the output log in the plugin dialog for detailed error messages from `pip`.
 
 ## Contributing
 
