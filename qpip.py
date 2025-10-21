@@ -1,6 +1,8 @@
 # qpip.py
 import subprocess
 import os
+# Import QMessageBox for displaying the user-facing error message
+from qgis.PyQt.QtWidgets import QMessageBox 
 
 class QGISPipManager:
     def __init__(self, qgis_python_path):
@@ -13,13 +15,38 @@ class QGISPipManager:
 
         # Ensure pip is available
         try:
+            # ORIGINAL PROBLEM LINE: subprocess.run([self.qgis_python_path, '-m', 'pip', '--version'], check=True, capture_output=True)
             subprocess.run([self.qgis_python_path, '-m', 'pip', '--version'], check=True, capture_output=True)
             print("pip version check successful")  # Debugging
+
+        # --- FIX APPLIED HERE: Catch PermissionError (WinError 5) ---
+        except PermissionError as e:
+            # Display a user-friendly error message using QMessageBox
+            error_message = (
+                "The Pip Manager plugin failed to start due to a Permission Error.\n\n"
+                "**Error Details:** Access is denied when trying to execute the QGIS "
+                "Python interpreter to check the 'pip' version.\n\n"
+                "**Solution:** Please close QGIS and **Run QGIS as an Administrator** "
+                "to resolve this issue and use the plugin."
+            )
+            
+            # Show a critical error message box
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Pip Manager Startup Failed")
+            msg.setInformativeText(error_message)
+            msg.setWindowTitle("Permission Error")
+            msg.exec_()
+            
+            # Re-raise a new exception to signal the main plugin logic that initialization failed
+            raise RuntimeError("Pip Manager initialization failed due to PermissionError.") from e
+        # -----------------------------------------------------------
+
         except FileNotFoundError as e:
             print(f"QGIS Python or pip not found: {e}")
             print(f"Error: {e}")  # More specific error message
             raise  # Re-raise the exception to signal the issue
-
+        
     def get_installed_packages(self):
         """Returns a list of installed packages within the QGIS environment."""
         import json
