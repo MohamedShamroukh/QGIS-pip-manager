@@ -1,35 +1,43 @@
-Mohamed Shamroukh is a doctoral researcher at The Impact Hub, School of Architecture, Building and Civil Engineering, Loughborough University. He specialises in Geospatial Intelligence, GIS, Remote Sensing, Urban Planning, and GeoAI (Geospatial Artificial Intelligence). His PhD research focuses on data-driven modelling, geospatial analysis, and machine learning for pedestrian-friendly urban planning and sustainable city development. Mohamed has extensive expertise in geospatial data science, urban analytics, spatial modelling, Python programming, and geospatial databases. He has conducted research and teaching in GIS, remote sensing, and urban studies, including experience as a research and teaching assistant at South Valley University, Egypt. His projects include WiFi-based pedestrian monitoring, point of interest (POI) analysis, street network, and geospatial data integration.
-
-# QGIS pip Manager Plugin
+# QGIS Pip Manager Plugin
 
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![QGIS Version](https://img.shields.io/badge/QGIS-3.x-green)](https://qgis.org)
-[![Version](https://img.shields.io/badge/Version-0.0.4-blue)](https://github.com/MohamedShamroukh/QGIS-pip-manager/releases)
+[![Version](https://img.shields.io/badge/Version-0.1.0-blue)](https://github.com/MohamedShamroukh/QGIS-pip-manager/releases)
 
 ## Description
 
-The QGIS Pip Manager plugin is a powerful utility designed to simplify Python package management directly within your QGIS environment. It provides a robust, user-friendly interface for searching, installing, uninstalling, and managing specific versions of packages using `pip`. This eliminates the need for command-line interaction and is essential for extending QGIS functionality through external Python libraries.
+The **QGIS Pip Manager** plugin is a powerful utility designed to simplify Python package management directly within your QGIS environment. It provides a robust, tabbed user interface for searching, installing, uninstalling, upgrading, downgrading, and managing Python packages using `pip` — all without touching the command line.
+
+Whether you need a single library or an entire data-science stack, QGIS Pip Manager handles it asynchronously so your QGIS interface never freezes.
 
 ## Key Features
 
 *   **Complete Package Control:** Effortlessly **Install, Uninstall, Upgrade,** or **Downgrade** packages to a specific version.
-*   **Asynchronous Operations:** Package listings and installation/uninstallation run in the background, preventing the QGIS interface from freezing.
-*   **Intuitive UX:** Features include package list **filtering,** **search highlighting,** and **log clearing** for a streamlined experience.
-*   **Quiet Execution:** Subprocess calls (pip operations) run silently on Windows, suppressing disruptive command-line pop-up windows.
-*   **Robust Error Handling:** Features improved automatic Python Path detection and clear guidance for **Permission Denied** errors on Windows (UAC).
-*   **Dependency Info:** Retrieve detailed information (`pip show`) for installed packages.
+*   **PyPI Live Search:** Type a package name and get real-time metadata from PyPI (summary, author, Python requirements).
+*   **Version Selection:** Fetch available versions from PyPI and pick exactly the one you need.
+*   **Asynchronous Operations:** All pip operations run in background threads — the QGIS UI stays responsive.
+*   **Package List Filtering:** Instantly filter your installed packages by name.
+*   **Snapshots:** Save your current environment as a timestamped requirements file and restore it later — perfect for rolling back bad installs.
+*   **Presets:** One-click installation of common GIS / data-science stacks (Data Science, Geospatial, Hydrology, Remote Sensing). Edit `presets.json` to add your own.
+*   **requirements.txt Support:** Import and export full environments via standard `requirements.txt` files.
+*   **Conflict & Outdated Checks:** Run `pip check` and `pip list --outdated` directly from the GUI.
+*   **Dry-Run Install:** Preview what an install would change before committing.
+*   **Conda Support:** Optionally use `conda` / `mamba` instead of `pip` when working in a conda environment.
+*   **Custom Index URLs:** Configure private PyPI mirrors, extra index URLs, and HTTP proxies from the Settings tab.
+*   **Cross-Platform:** Works on **Windows** (OSGeo4W & standalone), **macOS**, and **Linux**.
+*   **PyQt5 / PyQt6 Compatible:** Runs on both QGIS 3 (PyQt5) and future QGIS 4 (PyQt6) builds.
+*   **Quiet Execution:** Subprocess calls run silently on Windows — no disruptive command-line pop-ups.
+*   **Robust Error Handling:** Improved automatic Python path detection and clear guidance for **Permission Denied** errors (UAC).
 
 ## Screenshots
 
-Here are a few screenshots demonstrating the plugin's functionality:
-
-| Feature               | Screenshot                                                                                                                                                                                                                                                          |
-|-----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| New Plugin Interface  | [![New Plugin Interface](https://github.com/MohamedShamroukh/QGIS-pip-manager/blob/main/QGIS%20pip%20Manager/QGIS%20pip%20manager%20new%20interface.png?raw=true)](https://github.com/MohamedShamroukh/QGIS-pip-manager/blob/main/QGIS%20pip%20Manager/QGIS%20pip%20manager%20new%20interface.png?raw=true) |
-| Install & Upgrade     | [![Install & Upgrade](https://github.com/MohamedShamroukh/QGIS-pip-manager/blob/main/QGIS%20pip%20Manager/installing%20and%20upgrading%20packages.png?raw=true)](https://github.com/MohamedShamroukh/QGIS-pip-manager/blob/main/QGIS%20pip%20Manager/installing%20and%20upgrading%20packages.png?raw=true)   |
-| Filter & Select       | [![Filter & Select](https://github.com/MohamedShamroukh/QGIS-pip-manager/blob/main/QGIS%20pip%20Manager/filter_select_upgrade_packages.png?raw=true)](https://github.com/MohamedShamroukh/QGIS-pip-manager/blob/main/QGIS%20pip%20Manager/filter_select_upgrade_packages.png?raw=true)     |
-
-*Click on the images to view them in full size.*
+| Feature | Screenshot |
+|---------|------------|
+| Packages Tab | *List, filter, and manage installed packages* |
+| Install Tab | *Search PyPI, pick versions, install or dry-run* |
+| Snapshots Tab | *Save and restore environment snapshots* |
+| Presets Tab | *One-click install of common stacks* |
+| Settings Tab | *Configure proxies, index URLs, and paths* |
 
 ## Installation
 
@@ -41,28 +49,56 @@ Here are a few screenshots demonstrating the plugin's functionality:
 ## Usage
 
 1.  After installation, find the plugin in the QGIS menu under `Plugins > QGIS Pip Manager`.
-2.  Click on `QGIS Pip Manager` to open the plugin dialog.
-3.  **Installed Packages:** The list automatically populates with all installed packages (asynchronously). Use the filter box to quickly narrow the list.
-4.  **Install/Upgrade:** Enter a package name, optionally select a version from the dropdown, and click **Install/Upgrade**. A QGIS restart prompt will follow successful completion.
-5.  **Uninstall:** Enter a package name in the text field or click an item in the list, then click **Uninstall**.
+2.  Click on **QGIS Pip Manager** to open the plugin dialog.
+
+### Tabs
+
+**Packages**
+*   The list automatically populates with all installed packages.
+*   Use the **Filter** box to quickly narrow the list.
+*   Click a package to auto-fill the install field and fetch its versions.
+*   **Refresh**, **Check Outdated**, and **Check Conflicts** buttons keep your environment healthy.
+
+**Install**
+*   Type a package name in the **PyPI Search** field — live info appears after a short pause.
+*   Select a version from the dropdown (or leave as **Latest**).
+*   Click **Install / Upgrade** or **Dry-run Check** to preview changes.
+*   Use **Import / Export requirements.txt** to move whole environments in or out.
+
+**Snapshots**
+*   Click **Save Snapshot Now** to capture your current environment.
+*   Select a snapshot and click **Restore Selected** to roll back.
+*   **Delete Selected** removes old snapshots you no longer need.
+
+**Presets**
+*   Select a preset (e.g., *Data Science*, *Geospatial*) and click **Install Selected Preset**.
+*   Edit `presets.json` in the plugin folder to add custom stacks.
+
+**Settings**
+*   Set **HTTP/HTTPS Proxy**, **Index URL**, **Extra Index URL**, and **Snapshots folder**.
+*   The detected Python path and pip version are displayed for verification.
+*   All settings persist across QGIS sessions.
 
 ## Configuration
 
-*   The plugin automatically detects the QGIS Python executable path.
-*   If automatic detection fails, you will be prompted to enter the path manually.
-*   The path is stored persistently in QGIS settings.
+*   The plugin **automatically detects** the QGIS Python executable path on first run.
+*   If auto-detection fails, you will be prompted to enter the path manually.
+*   The path is stored persistently in QGIS settings (`pip_manager/python_path`).
 
 ## Dependencies
 
 *   QGIS 3.x
 *   Python 3.7 or higher (matching the QGIS Python environment)
-*   Required Python packages: `requests`, `geopandas`, `shapely`, `packaging` (automatically checked and installed if missing during plugin load).
+*   `pip` must be available in the detected Python environment.
+
+> **Note:** Earlier versions required `requests`, `geopandas`, `shapely`, and `packaging` to be pre-installed. These hard dependencies have been removed — the plugin now uses only the Python standard library plus `pip`.
 
 ## Troubleshooting
 
-*   **Plugin doesn't load/Permission Denied:** On Windows, if you encounter "Access is denied" errors, try closing QGIS and running it **"As Administrator."**
-*   **"Invalid Python Path" error:** Verify that the path to the QGIS Python executable is correct.
-*   **Package operation fails:** Check your internet connection. If the problem persists, review the output log in the plugin dialog for detailed error messages from `pip`.
+*   **Plugin doesn't load / Permission Denied:** On Windows, if you encounter "Access is denied" errors, try closing QGIS and running it **"As Administrator."**
+*   **"Invalid Python Path" error:** Verify that the path to the QGIS Python executable is correct in the **Settings** tab.
+*   **Buttons do nothing / empty package list:** This usually means the detected Python path is wrong. Go to **Settings**, check the displayed Python path, and correct it if necessary.
+*   **Package operation fails:** Check your internet connection. If the problem persists, review the output **Log** in the plugin dialog for detailed error messages from `pip`.
 
 ## Contributing
 
