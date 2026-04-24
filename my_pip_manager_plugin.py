@@ -1,247 +1,241 @@
-# my_pip_manager_plugin.py 
-import subprocess
+"""
+my_pip_manager_plugin.py  -  QGIS Pip Manager v0.2.0
+Robust Python path detection for OSGeo4W, conda, Homebrew, and system Python.
+"""
 import os
 import platform
+import subprocess
+import sys
+import sysconfig
+import tempfile
+from pathlib import Path
+
 from qgis.core import QgsApplication, QgsSettings
-from qgis.utils import iface
+from .compat import QAction, QIcon, QMessageBox, QInputDialog
 from .my_pip_manager_dialog import PipManagerDialog
-from PyQt5.QtCore import QObject
-from PyQt5.QtWidgets import QAction, QMessageBox, QInputDialog
-from PyQt5.QtGui import QIcon
-import importlib
-import os.path
-from .qpip import QGISPipManager # Ensure QGISPipManager is imported for use in run()
 
-# Define creation flags for subprocess on Windows to hide the console window
 if platform.system() == "Windows":
-    # CREATE_NO_WINDOW is 0x08000000
-    SUBPROCESS_FLAGS_PLUGIN = 0x08000000
+    SUBPROCESS_FLAGS = 0x08000000
 else:
-    SUBPROCESS_FLAGS_PLUGIN = 0
+    SUBPROCESS_FLAGS = 0
 
 
-def check_library(library_name):
-    """Checks if a Python library is installed."""
-    try:
-        importlib.import_module(library_name)
-        return True
-    except ImportError:
-        return False
+class MyPipManagerPlugin:
 
-
-def install_library(library_name, qgis_python_path):
-    """Installs a Python library using pip within the QGIS environment."""
-    try:
-        os_type = platform.system()
-        # Get the silent flags
-        flags = SUBPROCESS_FLAGS_PLUGIN if os_type == 'Windows' else 0
-
-        if os_type == 'Windows':
-            # FIX: Added creationflags=flags to suppress console window
-            subprocess.check_call([qgis_python_path, "-m", "pip", "install", library_name],
-                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=flags)
-        elif os_type == 'Linux' or os_type == 'Darwin':  # Darwin is macOS
-            subprocess.check_call([qgis_python_path, "-m", "pip3", "install", library_name],
-                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        else:
-            print(f"Unsupported operating system: {os_type}")
-            return False
-
-        print(f"Successfully installed {library_name}")
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"Error installing {library_name}: {e.stderr.decode()}")  # Print stderr
-        return False
-    except FileNotFoundError:
-        print("QGIS Python executable not found.")
-        return False
-    except PermissionError:
-        # Catch PermissionError during installation (if it occurs during the pre-check)
-        QMessageBox.critical(iface.mainWindow(), "Permission Denied",
-                             "Access is denied when trying to execute the QGIS Python interpreter for installation. "
-                             "Please close QGIS and try running it 'As Administrator'.")
-        return False
-
-
-class MyPipManagerPlugin(QObject):
     def __init__(self, iface):
-        super().__init__()
-        self.iface = iface
-        self.dlg = None
-        self.action = None
-        self.required_libraries = ["requests", "geopandas", "shapely", "packaging"]
-        self.qgis_python_path = self.get_qgis_python_path()
+        self.iface       = iface
+        self.dlg         = None
+        self.action      = None
+        self.settings    = QgsSettings()
+        self.python_path = self._detect_python()
+
+    # -- GUI lifecycle ---------------------------------------------------------
 
     def initGui(self):
-        """Called when the plugin is loaded."""
-
-        # **Improved Icon Handling:**
-        icon_path = os.path.join(os.path.dirname(__file__), 'icon.png')  # Explicit path relative to plugin file
-        if not os.path.exists(icon_path):
-            print(f"Icon file not found at: {icon_path}") #Debugging
-            icon = QIcon() #Use a blank icon.
-        else:
-            icon = QIcon(icon_path) # Load the icon from the filepath
-
-        # Create action that will start plugin configuration
-        self.action = QAction(icon,
-                              "Pip Manager", self.iface.mainWindow())
+        icon_path = Path(__file__).parent / "icon.png"
+        icon = QIcon(str(icon_path)) if icon_path.exists() else QIcon()
+        self.action = QAction(icon, "Pip Manager", self.iface.mainWindow())
         self.action.triggered.connect(self.run)
-        self.iface.addPluginToMenu("My Plugins", self.action)
+        self.iface.addPluginToMenu("Pip Manager", self.action)
         self.iface.addToolBarIcon(self.action)
 
-        missing_libraries = []
-        for library in self.required_libraries:
-            if not check_library(library):
-                missing_libraries.append(library)
-
-        if missing_libraries:
-            message = "The following required libraries are missing:\n" + "\n".join(missing_libraries) + "\n\nDo you want to install them automatically?"
-            reply = QMessageBox.question(self.iface.mainWindow(), 'Missing Libraries',
-                                         message, QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-
-            if reply == QMessageBox.Yes:
-                if not self.qgis_python_path:
-                    self.qgis_python_path = self.prompt_for_python_path()
-
-                if self.qgis_python_path:
-                    for library in missing_libraries:
-                        if not install_library(library, self.qgis_python_path):
-                            # The error is displayed inside install_library, just return here
-                            return
-
-                    QMessageBox.information(self.iface.mainWindow(), "Success",
-                                            "All required libraries installed.  Please restart QGIS.")
-                    return
-                else:
-                    QMessageBox.warning(self.iface.mainWindow(), "Warning",
-                                        "Could not determine QGIS Python path.  Cannot install required libraries.")
-            else:
-                QMessageBox.warning(self.iface.mainWindow(), "Warning",
-                                    "The plugin may not function correctly without the required libraries.")
-
     def unload(self):
-        """Called when the plugin is unloaded."""
         if self.action:
-            self.iface.removePluginMenu("My Plugins", self.action)
+            self.iface.removePluginMenu("Pip Manager", self.action)
             self.iface.removeToolBarIcon(self.action)
-            if self.dlg:
-                self.dlg.close()
+        if self.dlg:
+            self.dlg.close()
+
+    # -- Run -------------------------------------------------------------------
 
     def run(self):
-        """Called when the plugin's action is triggered."""
-        if not self.qgis_python_path:
-            self.qgis_python_path = self.prompt_for_python_path()
-            if not self.qgis_python_path:
-                QMessageBox.critical(self.iface.mainWindow(), "Error", "QGIS Python path is not set. Plugin cannot run.")
+        if not self.python_path:
+            self.python_path = self._prompt_python_path()
+            if not self.python_path:
+                QMessageBox.critical(
+                    self.iface.mainWindow(), "Error",
+                    "Could not find QGIS Python executable.\n"
+                    "Please set the path manually in the Settings tab.")
                 return
 
-        # NEW: Check for existing dialog before trying to create a new one (avoid re-init issues)
         if self.dlg and self.dlg.isVisible():
             self.dlg.raise_()
             self.dlg.activateWindow()
             return
 
-        # CRITICAL FIX: Initialize QGISPipManager here to catch PermissionError before dialog init
         try:
-            # Check for initial errors like PermissionError or ValueError
-            QGISPipManager(qgis_python_path=self.qgis_python_path)
-
-            if self.dlg is None:
-                # If no error, proceed to create the dialog (which will also create QGISPipManager inside)
-                self.dlg = PipManagerDialog(parent=self.iface.mainWindow(), qgis_python_path=self.qgis_python_path)  # Pass the path
+            self.dlg = PipManagerDialog(
+                parent           = self.iface.mainWindow(),
+                qgis_python_path = self.python_path,
+                settings         = self.settings,
+            )
             self.dlg.show()
-        except PermissionError as e:
-            # Catch the user-friendly PermissionError raised from qpip.py
-            QMessageBox.critical(self.iface.mainWindow(), "Error", str(e))
-        except ValueError as e:
-             # Catch ValueError for invalid path
-            QMessageBox.critical(self.iface.mainWindow(), "Error", str(e))
-        except Exception as e:
-            # Catch other potential errors during init (e.g., FileNotFoundError for python path)
-            QMessageBox.critical(self.iface.mainWindow(), "Fatal Error", f"An unexpected error occurred during initialization: {str(e)}")
+        except PermissionError as exc:
+            QMessageBox.critical(self.iface.mainWindow(), "Permission Error", str(exc))
+        except (ValueError, FileNotFoundError) as exc:
+            QMessageBox.critical(self.iface.mainWindow(), "Path Error", str(exc))
+        except Exception as exc:
+            QMessageBox.critical(self.iface.mainWindow(), "Fatal Error", str(exc))
 
-    def get_qgis_python_path(self):
-        """Gets the QGIS Python path from settings or tries to determine it automatically."""
-        settings = QgsSettings()
-        python_path = settings.value("pip_manager/python_path")
-        if python_path:
-            return python_path
+    # -- Python path detection -------------------------------------------------
 
-        # Attempt to automatically find the path
-        qgis_prefix_path = QgsApplication.prefixPath()
+    @staticmethod
+    def _python_names():
+        """Platform-appropriate Python executable names."""
+        if platform.system() == "Windows":
+            return ["python.exe", "python3.exe"]
+        return ["python3", "python"]
 
-        possible_paths = []
-        if platform.system() == 'Windows':
-            possible_paths.append(os.path.join(qgis_prefix_path, "python3.exe"))  # Basic path
-            possible_paths.append(os.path.join(qgis_prefix_path, "apps", "Python39", "python.exe"))  # QGIS 3.22 and earlier
-            possible_paths.append(os.path.join(qgis_prefix_path, "apps", "Python310", "python.exe"))  # QGIS 3.22
-            possible_paths.append(os.path.join(qgis_prefix_path, "apps", "Python311", "python.exe"))  # QGIS 3.28
-            possible_paths.append(os.path.join(qgis_prefix_path, "apps", "Python312", "python.exe"))  # QGIS 3.36 and later
-            possible_paths.append(os.path.join(qgis_prefix_path, "apps", "Python37", "python.exe"))  # older qgis version
-            possible_paths.append(os.path.join(qgis_prefix_path, "apps", "Python38", "python.exe"))  # older qgis version
+    def _detect_python(self):
+        """
+        Detect the Python interpreter that is running this plugin.
+        Validates every candidate by actually importing pip.
+        """
+        # 1. Check cached path first (and validate it — never trust blindly)
+        saved = self.settings.value("pip_manager/python_path", "")
+        if saved and self._validate(saved):
+            return saved
+        if saved:
+            self.settings.remove("pip_manager/python_path")
 
-            # Look for the path with out /apps/
-            possible_paths.append(os.path.join(qgis_prefix_path, "Python39", "python.exe"))  # QGIS 3.22 and earlier
-            possible_paths.append(os.path.join(qgis_prefix_path, "Python310", "python.exe"))  # QGIS 3.22
-            possible_paths.append(os.path.join(qgis_prefix_path, "Python311", "python.exe"))  # QGIS 3.28
-            possible_paths.append(os.path.join(qgis_prefix_path, "Python312", "python.exe"))  # QGIS 3.36 and later
-            possible_paths.append(os.path.join(qgis_prefix_path, "Python37", "python.exe"))  # older qgis version
-            possible_paths.append(os.path.join(qgis_prefix_path, "Python38", "python.exe"))  # older qgis version
+        candidates = []
+        system = platform.system()
 
-            # Check for OSGeo4W installation (common)
-            possible_paths.append(os.path.join("C:\\OSGeo4W64", "bin", "python3.exe"))  # Common OSGeo4W path
-            possible_paths.append(os.path.join("C:\\OSGeo4W", "bin", "python3.exe"))  # 32-bit OSGeo4W path
+        # 2. sysconfig BINDIR — most reliable, tells us where python was built
+        bindir = sysconfig.get_config_var("BINDIR")
+        if bindir:
+            for name in self._python_names():
+                candidates.append(str(Path(bindir) / name))
 
-        else:  # Linux or macOS
-            possible_paths.append(os.path.join(qgis_prefix_path, "bin", "python3"))  # Basic path
-            possible_paths.append(os.path.join(qgis_prefix_path, "python3"))  # Sometimes directly in prefix path
+        # 3. sys.prefix / sys.base_prefix
+        for prefix_attr in ("base_prefix", "prefix"):
+            prefix = getattr(sys, prefix_attr, None)
+            if not prefix:
+                continue
+            p = Path(prefix)
+            for name in self._python_names():
+                candidates.append(str(p / name))
+                if system != "Windows":
+                    candidates.append(str(p / "bin" / name))
 
-            # Try some common alternative paths on linux and mac
-            possible_paths.append(os.path.join(qgis_prefix_path, "bin", "python"))
-            possible_paths.append(os.path.join(qgis_prefix_path, "python"))
+        # 4. Derive from sys.executable (QGIS binary location)
+        #    Typical layouts:
+        #    Win:  C:\OSGeo4W\bin\qgis-bin.exe  → ..\apps\Python3xx\python.exe
+        #    macOS: /Applications/QGIS.app/Contents/MacOS/QGIS → ../Resources/python
+        #    Linux: /usr/bin/qgis → /usr/bin/python3
+        try:
+            exe = Path(sys.executable).resolve()
+            if exe.parent.name.lower() in ("bin", "macos"):
+                root = exe.parent.parent
+                if system == "Windows":
+                    # OSGeo4W / QGIS standalone: apps/Python3*
+                    for pydir in sorted(root.glob("apps/Python3*")):
+                        for name in self._python_names():
+                            candidates.append(str(pydir / name))
+                # Also check root/bin for Unix-style or older OSGeo4W installs
+                for name in self._python_names():
+                    candidates.append(str(root / "bin" / name))
+        except (OSError, ValueError):
+            pass
 
-            # Check for python3 with version number
-            possible_paths.append(os.path.join(qgis_prefix_path, "bin", "python3.9"))
-            possible_paths.append(os.path.join(qgis_prefix_path, "bin", "python3.10"))
-            possible_paths.append(os.path.join(qgis_prefix_path, "bin", "python3.11"))
-            possible_paths.append(os.path.join(qgis_prefix_path, "bin", "python3.12"))
+        # 5. Walk sys.path to catch conda/envs and odd installs
+        seen_roots = set()
+        for entry in sys.path:
+            try:
+                p = Path(entry).resolve()
+                for _ in range(3):
+                    key = str(p)
+                    if key not in seen_roots:
+                        seen_roots.add(key)
+                        for name in self._python_names():
+                            candidates.append(str(p / name))
+                            if system != "Windows":
+                                candidates.append(str(p / "bin" / name))
+                            else:
+                                candidates.append(str(p / "Scripts" / name))
+                    p = p.parent
+            except (OSError, ValueError):
+                continue
 
-            possible_paths.append(os.path.join(qgis_prefix_path, "python3.9"))
-            possible_paths.append(os.path.join(qgis_prefix_path, "python3.10"))
-            possible_paths.append(os.path.join(qgis_prefix_path, "python3.11"))
-            possible_paths.append(os.path.join(qgis_prefix_path, "python3.12"))
+        # 6. Test candidates in order
+        seen = set()
+        for p in candidates:
+            p = str(p).strip()
+            if not p or p in seen:
+                continue
+            seen.add(p)
+            if self._validate(p):
+                return self._cache(p)
 
-        for path in possible_paths:
-            if os.path.exists(path):
-                self.set_qgis_python_path(path)
-                return path
+        return ""
 
-        return None  # Path not found
+    def _validate(self, path):
+        """
+        A path is valid only if:
+          1. It exists and is a file
+          2. Its name contains 'python' (avoids QGIS binaries)
+          3. Running 'import pip' succeeds
+        We do NOT reject based on folder names — that breaks OSGeo4W & QGIS.
+        """
+        if not path:
+            return False
 
-    def set_qgis_python_path(self, path):
-        """Saves the QGIS Python path to QGIS settings."""
-        settings = QgsSettings()
-        settings.setValue("pip_manager/python_path", path)
-        self.qgis_python_path = path
+        p = Path(path)
+        if not p.exists() or not p.is_file():
+            return False
 
-    def prompt_for_python_path(self):
-        """Prompts the user to enter the QGIS Python executable path."""
-        path, ok = QInputDialog.getText(self.iface.mainWindow(), "QGIS Python Path",
-                                         "Enter the path to the QGIS Python executable:",
-                                         text=self.qgis_python_path if self.qgis_python_path else "")
+        name = p.name.lower()
+        # Reject known QGIS application binaries
+        qgis_bins = {
+            "qgis.exe", "qgis-bin.exe", "qgis-ltr-bin.exe",
+            "qgis-bin-g7.4.2.exe", "qgis-ltr-bin-g7.4.2.exe",
+            "qgis", "qgis-ltr", "qgis-bin",
+        }
+        if name in qgis_bins:
+            return False
 
+        # If it doesn't look like a Python binary, skip it
+        if "python" not in name:
+            return False
+
+        safe_cwd = (os.environ.get("TEMP")
+                    or os.environ.get("TMP")
+                    or tempfile.gettempdir()
+                    or str(Path.home()))
+
+        try:
+            r = subprocess.run(
+                [path, "-c", "import pip; print(pip.__version__)"],
+                capture_output=True, text=True, timeout=10,
+                creationflags=SUBPROCESS_FLAGS, cwd=safe_cwd,
+            )
+            return r.returncode == 0 and bool(r.stdout.strip())
+        except Exception:
+            return False
+
+    def _cache(self, path):
+        self.settings.setValue("pip_manager/python_path", path)
+        return path
+
+    def _prompt_python_path(self):
+        system = platform.system()
+        example = (
+            "C:/OSGeo4W/apps/Python312/python.exe"
+            if system == "Windows"
+            else "/usr/bin/python3"
+        )
+        path, ok = QInputDialog.getText(
+            self.iface.mainWindow(),
+            "Set Python Path",
+            "Auto-detection failed.\nPaste the full path to the Python executable\n"
+            "e.g. {}".format(example),
+            text="",
+        )
         if ok:
             path = path.strip()
-            if os.path.exists(path):
-                self.set_qgis_python_path(path)
-                return path
-            else:
-                QMessageBox.critical(self.iface.mainWindow(), "Error", "Invalid path. Please try again.")
-                return self.prompt_for_python_path()  # Recursive call to re-prompt
-        return None
-
-
-def classFactory(iface):
-    """Instantiates the plugin class."""
-    return MyPipManagerPlugin(iface)
+            if self._validate(path):
+                return self._cache(path)
+            QMessageBox.critical(
+                self.iface.mainWindow(), "Invalid Path",
+                "Not a valid Python with pip:\n{}".format(path))
+        return ""
