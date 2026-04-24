@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Data Science",
+    "description": "Core data science stack",
+    "packages": ["pandas", "numpy", "matplotlib", "scikit-learn", "scipy"]
+  },
+  {
+    "name": "Geospatial",
+    "description": "Extended GIS Python libraries",
+    "packages": ["geopandas", "shapely", "pyproj", "fiona", "rasterio"]
+  },
+  {
+    "name": "Hydrology",
+    "description": "Hydrological analysis tools",
+    "packages": ["pysheds", "whitebox", "hydroeval"]
+  },
+  {
+    "name": "Remote Sensing",
+    "description": "Satellite & raster processing",
+    "packages": ["rasterio", "xarray", "earthpy", "sentinelsat"]
+  }
+]
