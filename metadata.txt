@@ -1,31 +1,19 @@
 [general]
-name=QGIS Pip Manager
+name=QGIS pip Manager
 email=m.shamroukh@lboro.ac.uk
 author=Mohamed Shamroukh, Asya Natapov and Taimaz Larimian
 qgisMinimumVersion=3.0
 qgisMaximumVersion=3.99
-description=A QGIS plugin to manage Python packages within the QGIS environment, simplifying the installation, uninstallation, and searching of packages without command-line interaction.
-about=The QGIS Pip Manager plugin provides a user-friendly interface for managing Python packages, extending QGIS functionality for users of all levels. It automates Python path detection and error handling to ensure a smooth experience.
-version=0.0.4
+description=A QGIS plugin to manage Python packages within the QGIS environment, simplifying installation, uninstallation, searching, and versioning without command-line interaction.
+about=The QGIS Pip Manager plugin provides a user-friendly, tabbed interface for managing Python packages. It features PyPI live search, environment snapshots, preset stacks, requirements.txt import/export, dry-run checks, conflict detection, and automatic Python path detection with cross-platform support.
+version=0.1.0
 repository=https://github.com/MohamedShamroukh/QGIS-pip-manager
 tracker=https://github.com/MohamedShamroukh/QGIS-pip-manager/issues
-
-; Optional metadata
 category=Utilities
-changelog=0.0.4 - Significant UX and stability improvements:
- * Implemented Upgrade/Downgrade functionality.
- * Added asynchronous package listing to prevent UI freezing.
- * Added package list filtering and search highlighting.
- * Improved subprocess handling to suppress pop-up windows (quiet mode).
- * Enhanced Windows PermissionError handling with user guidance.
- * Added dedicated buttons for Log Clearing and Refreshing list.
-
-0.0.3 - Initial release with basic package management functionality. ; PREVIOUS CHANGELOG
-
-tags=qgis, python, package manager, utilities
+changelog=0.1.0 - Major rewrite with new features and stability fixes: New tabbed interface (Packages, Install, Snapshots, Presets, Settings). Added PyPI live search with real-time package metadata. Added version dropdown populated from PyPI. Added environment Snapshots (save, restore, delete). Added Presets for one-click stack installation. Added requirements.txt import and export. Added pip conflict checking and outdated package detection. Added dry-run install preview. Added conda/mamba support toggle. Added Settings for proxy, index URL, extra index URL, and snapshots folder. Fixed worker thread garbage-collection bug that caused buttons to appear unresponsive. Fixed environment PATH manipulation that broke pip on OSGeo4W and conda. Improved cross-platform Python path detection for Windows, macOS, and Linux. Added PyQt5 / PyQt6 compatibility layer. Removed hard dependencies on requests, geopandas, shapely, and packaging. | 0.0.4 - UX and stability improvements: Implemented Upgrade/Downgrade functionality. Added asynchronous package listing to prevent UI freezing. Added package list filtering and search highlighting. Improved subprocess handling to suppress pop-up windows. Enhanced Windows PermissionError handling with user guidance. Added dedicated buttons for Log Clearing and Refreshing list.
+tags=qgis, python, package manager, pip, conda, utilities, geospatial
 homepage=https://github.com/MohamedShamroukh/QGIS-pip-manager
 icon=icon.png
 experimental=False
 deprecated=False
 plugin_dependencies=
-...
