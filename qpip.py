@@ -2,13 +2,15 @@
 qpip.py - Core pip backend for QGIS Pip Manager
 Compatible with OSGeo4W, conda, and standalone Python on Windows/Linux/macOS.
 """
-import os
 import json
+import os
 import platform
 import re
+import ssl
 import subprocess
 import tempfile
 from datetime import datetime
+from http.client import HTTPSConnection
 from pathlib import Path
 
 if platform.system() == "Windows":
@@ -45,6 +47,22 @@ def _pip_version(python_path):
     return (0, 0, 0)
 
 
+def _fetch_json(host, path, timeout=8):
+    """Fetch JSON from an HTTPS endpoint using http.client (Bandit-safe)."""
+    ctx = ssl.create_default_context()
+    conn = HTTPSConnection(host, timeout=timeout, context=ctx)
+    try:
+        conn.request("GET", path,
+                     headers={"User-Agent": "QGIS-Pip-Manager/0.1.0"})
+        resp = conn.getresponse()
+        if resp.status != 200:
+            raise RuntimeError("HTTP {}: {}".format(resp.status,
+                                                      resp.reason))
+        return json.loads(resp.read().decode("utf-8"))
+    finally:
+        conn.close()
+
+
 class QGISPipManager:
 
     def __init__(self, qgis_python_path, proxy="", extra_index_url="",
@@ -58,11 +76,11 @@ class QGISPipManager:
                 "Invalid QGIS Python path: '{}'".format(qgis_python_path))
 
         self.qgis_python_path = str(p)
-        self.python_path      = self.qgis_python_path
+        self.python_path = self.qgis_python_path
 
-        self.proxy           = proxy.strip()
+        self.proxy = proxy.strip()
         self.extra_index_url = extra_index_url.strip()
-        self.index_url       = index_url.strip()
+        self.index_url = index_url.strip()
 
         # Snapshots directory
         if snapshots_dir:
@@ -70,9 +88,11 @@ class QGISPipManager:
         else:
             appdata = os.environ.get("APPDATA") or os.environ.get("HOME", "")
             if appdata:
-                self.snapshots_dir = Path(appdata) / "QGIS" / "pip_manager_snapshots"
+                self.snapshots_dir = (
+                    Path(appdata) / "QGIS" / "pip_manager_snapshots")
             else:
-                self.snapshots_dir = Path(__file__).parent / "pip_manager_snapshots"
+                self.snapshots_dir = (
+                    Path(__file__).parent / "pip_manager_snapshots")
         try:
             self.snapshots_dir.mkdir(parents=True, exist_ok=True)
         except PermissionError:
@@ -81,23 +101,25 @@ class QGISPipManager:
             self.snapshots_dir.mkdir(parents=True, exist_ok=True)
 
         self.is_conda = _is_conda_env(self.qgis_python_path)
-        self.pip_ver  = _pip_version(self.qgis_python_path)
+        self.pip_ver = _pip_version(self.qgis_python_path)
 
     # -- helpers ---------------------------------------------------------------
 
     def _pip_args(self, *extra):
         cmd = [self.qgis_python_path, "-m", "pip"] + list(extra)
-        if self.proxy:           cmd += ["--proxy",           self.proxy]
-        if self.index_url:       cmd += ["--index-url",       self.index_url]
-        if self.extra_index_url: cmd += ["--extra-index-url", self.extra_index_url]
+        if self.proxy:
+            cmd += ["--proxy", self.proxy]
+        if self.index_url:
+            cmd += ["--index-url", self.index_url]
+        if self.extra_index_url:
+            cmd += ["--extra-index-url", self.extra_index_url]
         return cmd
 
     def _run(self, cmd, stream_cb=None):
-        """Run a subprocess. Inherits the parent environment — do NOT rewrite PATH."""
+        """Run a subprocess. Inherits the parent environment."""
         cwd = _safe_cwd()
 
         if stream_cb:
-            # Merge stderr into stdout so we don't deadlock on full stderr buffer
             proc = subprocess.Popen(
                 cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                 text=True, creationflags=SUBPROCESS_FLAGS, cwd=cwd)
@@ -121,7 +143,8 @@ class QGISPipManager:
         Returns an empty list on any failure so the GUI never hangs.
         """
         try:
-            rc, out, err = self._run(self._pip_args("list", "--format=json"))
+            rc, out, err = self._run(
+                self._pip_args("list", "--format=json"))
             if rc != 0:
                 return []
             pkgs = json.loads(out)
@@ -161,7 +184,8 @@ class QGISPipManager:
             if not spec or spec.startswith("#"):
                 continue
             ok, msg = self.install_package(spec, stream_cb=stream_cb)
-            results.append("{} {}: {}".format("OK" if ok else "FAIL", spec, msg))
+            results.append(
+                "{} {}: {}".format("OK" if ok else "FAIL", spec, msg))
             if not ok:
                 all_ok = False
         return all_ok, "\n".join(results)
@@ -174,16 +198,13 @@ class QGISPipManager:
                 self._pip_args("index", "versions", package_name))
             m = re.search(r"Available versions: (.*)", out)
             if m:
-                return [v.split()[0] for v in m.group(1).split(",") if v.strip()]
+                return [
+                    v.split()[0] for v in m.group(1).split(",") if v.strip()]
         return self._pypi_versions(package_name)
 
     def _pypi_versions(self, package_name):
         try:
-            import urllib.request
-            with urllib.request.urlopen(
-                    "https://pypi.org/pypi/{}/json".format(package_name),
-                    timeout=8) as resp:
-                data = json.loads(resp.read())
+            data = _fetch_json("pypi.org", "/pypi/{}/json".format(package_name))
             return sorted(data.get("releases", {}).keys(), reverse=True)[:40]
         except Exception as exc:
             return ["Error: {}".format(exc)]
@@ -192,19 +213,16 @@ class QGISPipManager:
 
     def pypi_search(self, query):
         try:
-            import urllib.request
-            with urllib.request.urlopen(
-                    "https://pypi.org/pypi/{}/json".format(query),
-                    timeout=8) as resp:
-                info = json.loads(resp.read()).get("info", {})
+            info = _fetch_json(
+                "pypi.org", "/pypi/{}/json".format(query)).get("info", {})
             return {
-                "name":            info.get("name", query),
-                "version":         info.get("version", ""),
-                "summary":         info.get("summary", "No description available."),
-                "author":          info.get("author", ""),
-                "home_page":       info.get("home_page", ""),
+                "name": info.get("name", query),
+                "version": info.get("version", ""),
+                "summary": info.get("summary", "No description available."),
+                "author": info.get("author", ""),
+                "home_page": info.get("home_page", ""),
                 "requires_python": info.get("requires_python", ""),
-                "license":         info.get("license", ""),
+                "license": info.get("license", ""),
             }
         except Exception as exc:
             return {"error": str(exc)}
@@ -222,8 +240,10 @@ class QGISPipManager:
     def dry_run_install(self, package_name, version=None):
         if self.pip_ver < (22, 0, 0):
             return self.check_conflicts()
-        spec = "{}=={}".format(package_name, version) if version else package_name
-        rc, out, err = self._run(self._pip_args("install", "--dry-run", spec))
+        spec = "{}=={}".format(
+            package_name, version) if version else package_name
+        rc, out, err = self._run(
+            self._pip_args("install", "--dry-run", spec))
         return rc == 0, (out + err).strip()
 
     # -- requirements.txt ------------------------------------------------------
@@ -252,9 +272,10 @@ class QGISPipManager:
         if rc != 0:
             return False, err
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        safe  = re.sub(r"[^\w\-]", "_", label)[:40]
-        name  = "snapshot_{}{}.txt".format(stamp, "_" + safe if safe else "")
-        path  = self.snapshots_dir / name
+        safe = re.sub(r"[^\w\-]", "_", label)[:40]
+        name = "snapshot_{}{}.txt".format(
+            stamp, "_" + safe if safe else "")
+        path = self.snapshots_dir / name
         try:
             path.write_text(out, encoding="utf-8")
             return True, str(path)
@@ -266,7 +287,8 @@ class QGISPipManager:
             self.snapshots_dir.glob("snapshot_*.txt"), reverse=True)]
 
     def restore_snapshot(self, snapshot_path, stream_cb=None):
-        return self.import_requirements(snapshot_path, stream_cb=stream_cb)
+        return self.import_requirements(
+            snapshot_path, stream_cb=stream_cb)
 
     def delete_snapshot(self, snapshot_path):
         try:
@@ -284,7 +306,8 @@ class QGISPipManager:
         try:
             mod = importlib.import_module(import_name)
             importlib.reload(mod)
-            return True, "'{}' available now - no restart needed.".format(import_name)
+            return True, "'{}' available now - no restart needed.".format(
+                import_name)
         except Exception:
             pass
         return False, "'{}' requires a QGIS restart.".format(import_name)
@@ -296,6 +319,7 @@ class QGISPipManager:
         exe = shutil.which("mamba") or shutil.which("conda")
         if not exe:
             return False, "conda/mamba not found on PATH."
-        rc, out, err = self._run([exe, "install", "-y", package_name], stream_cb)
+        rc, out, err = self._run(
+            [exe, "install", "-y", package_name], stream_cb)
         return ((True, "conda: installed {}.".format(package_name))
                 if rc == 0 else (False, err or out))
