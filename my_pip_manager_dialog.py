@@ -3,7 +3,6 @@ my_pip_manager_dialog.py  -  QGIS Pip Manager
 Tabbed dialog: Packages | Install | Snapshots | Presets | Settings
 PyQt5/PyQt6 compatible via compat.py.
 """
-import os
 import json
 import tempfile
 from pathlib import Path
@@ -11,9 +10,9 @@ from pathlib import Path
 from .compat import (
     QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit,
     QLineEdit, QTreeWidget, QTreeWidgetItem, QMessageBox, QComboBox,
-    QWidget, QSizePolicy, QFileDialog, QTabWidget, QLabel, QProgressBar,
+    QWidget, QFileDialog, QTabWidget, QLabel, QProgressBar,
     QCheckBox, QGroupBox, QFormLayout, QThread, pyqtSignal, QObject,
-    Qt, QTimer, QColor,
+    QTimer,
     Qt_SingleSel, QMsgBox_Yes, QMsgBox_No,
     SizePolicy_Fixed, SizePolicy_Pref,
 )
@@ -23,20 +22,20 @@ from .qpip import QGISPipManager
 # == Worker thread =============================================================
 
 class Worker(QObject):
-    finished      = pyqtSignal()
-    result        = pyqtSignal(str)
-    error         = pyqtSignal(str)
-    status        = pyqtSignal(str)
-    package_list  = pyqtSignal(list)
+    finished = pyqtSignal()
+    result = pyqtSignal(str)
+    error = pyqtSignal(str)
+    status = pyqtSignal(str)
+    package_list = pyqtSignal(list)
     versions_list = pyqtSignal(list)
-    pypi_info     = pyqtSignal(dict)
+    pypi_info = pyqtSignal(dict)
     progress_line = pyqtSignal(str)
 
     def __init__(self, manager, operation, *args):
         super().__init__()
-        self.manager   = manager
+        self.manager = manager
         self.operation = operation
-        self.args      = args
+        self.args = args
 
     def run(self):
         try:
@@ -62,7 +61,8 @@ class Worker(QObject):
                 self.package_list.emit(m.get_outdated_packages())
 
             elif op == "get_versions":
-                self.versions_list.emit(m.get_package_versions(self.args[0]))
+                self.versions_list.emit(
+                    m.get_package_versions(self.args[0]))
 
             elif op == "pypi_search":
                 self.pypi_info.emit(m.pypi_search(self.args[0]))
@@ -72,25 +72,29 @@ class Worker(QObject):
 
             elif op == "check_conflicts":
                 ok, report = m.check_conflicts()
-                self.result.emit(("OK: " if ok else "WARNING: ") + report)
+                self.result.emit(
+                    ("OK: " if ok else "WARNING: ") + report)
 
             elif op == "dry_run":
                 pkg = self.args[0]
                 ver = self.args[1] if len(self.args) > 1 else None
                 ok, report = m.dry_run_install(pkg, ver)
                 self.result.emit(
-                    ("No conflicts.\n" if ok else "Conflicts detected:\n") + report)
+                    ("No conflicts.\n" if ok else "Conflicts detected:\n")
+                    + report)
 
             elif op == "export_req":
                 ok, msg = m.export_requirements(self.args[0])
                 (self.result if ok else self.error).emit(msg)
 
             elif op == "import_req":
-                ok, msg = m.import_requirements(self.args[0], stream_cb=cb)
+                ok, msg = m.import_requirements(
+                    self.args[0], stream_cb=cb)
                 (self.result if ok else self.error).emit(msg)
 
             elif op == "save_snapshot":
-                ok, msg = m.save_snapshot(self.args[0] if self.args else "")
+                ok, msg = m.save_snapshot(
+                    self.args[0] if self.args else "")
                 (self.result if ok else self.error).emit(msg)
 
             elif op == "restore_snapshot":
@@ -102,7 +106,8 @@ class Worker(QObject):
                 (self.result if ok else self.error).emit(msg)
 
             else:
-                self.error.emit("Unknown worker operation: '{}'".format(op))
+                self.error.emit(
+                    "Unknown worker operation: '{}'".format(op))
 
         except Exception as exc:
             self.error.emit(str(exc))
@@ -119,23 +124,23 @@ class PipManagerDialog(QDialog):
         self.setWindowTitle("QGIS Pip Manager")
         self.resize(840, 660)
 
-        self._settings      = settings
-        self._proxy         = self._gs("proxy", "")
-        self._index_url     = self._gs("index_url", "")
-        self._extra_index   = self._gs("extra_index_url", "")
+        self._settings = settings
+        self._proxy = self._gs("proxy", "")
+        self._index_url = self._gs("index_url", "")
+        self._extra_index = self._gs("extra_index_url", "")
         self._snapshots_dir = self._gs("snapshots_dir", "")
 
         self.manager = QGISPipManager(
             qgis_python_path,
-            proxy           = self._proxy,
-            extra_index_url = self._extra_index,
-            index_url       = self._index_url,
-            snapshots_dir   = self._snapshots_dir,
+            proxy=self._proxy,
+            extra_index_url=self._extra_index,
+            index_url=self._index_url,
+            snapshots_dir=self._snapshots_dir,
         )
 
         self.installed_packages = []
-        self._active_threads    = []
-        self._active_workers    = []   # <-- FIX: keep Python refs alive
+        self._active_threads = []
+        self._active_workers = []
 
         self._search_timer = QTimer()
         self._search_timer.setSingleShot(True)
@@ -161,11 +166,11 @@ class PipManagerDialog(QDialog):
         root = QVBoxLayout(self)
 
         tabs = QTabWidget()
-        tabs.addTab(self._tab_packages(),  "Packages")
-        tabs.addTab(self._tab_install(),   "Install")
-        tabs.addTab(self._tab_snapshot(),  "Snapshots")
-        tabs.addTab(self._tab_presets(),   "Presets")
-        tabs.addTab(self._tab_settings(),  "Settings")
+        tabs.addTab(self._tab_packages(), "Packages")
+        tabs.addTab(self._tab_install(), "Install")
+        tabs.addTab(self._tab_snapshot(), "Snapshots")
+        tabs.addTab(self._tab_presets(), "Presets")
+        tabs.addTab(self._tab_settings(), "Settings")
         root.addWidget(tabs)
 
         log_group = QGroupBox("Log")
@@ -179,7 +184,7 @@ class PipManagerDialog(QDialog):
         lg.addWidget(self.log)
 
         btn_row = QHBoxLayout()
-        self._btn("Clear Log",     btn_row, lambda: self.log.clear())
+        self._btn("Clear Log", btn_row, lambda: self.log.clear())
         self._btn("Export Log...", btn_row, self._export_log)
         lg.addLayout(btn_row)
         root.addWidget(log_group)
@@ -200,8 +205,8 @@ class PipManagerDialog(QDialog):
         self.filter_field.setPlaceholderText("Filter installed packages...")
         self.filter_field.textChanged.connect(self._filter_list)
         fr.addWidget(self.filter_field)
-        self._btn("Refresh",         fr, self._populate_packages)
-        self._btn("Check Outdated",  fr, self._check_outdated)
+        self._btn("Refresh", fr, self._populate_packages)
+        self._btn("Check Outdated", fr, self._check_outdated)
         self._btn("Check Conflicts", fr, self._check_conflicts)
         lay.addLayout(fr)
 
@@ -213,7 +218,7 @@ class PipManagerDialog(QDialog):
 
         br = QHBoxLayout()
         self._btn("Show Details", br, self._show_details)
-        self._btn("Uninstall",    br, self._uninstall)
+        self._btn("Uninstall", br, self._uninstall)
         lay.addLayout(br)
         return w
 
@@ -242,10 +247,11 @@ class PipManagerDialog(QDialog):
         ar.addWidget(QLabel("Version:"))
         self.version_combo = QComboBox()
         self.version_combo.addItem("Latest")
-        self.version_combo.setSizePolicy(SizePolicy_Fixed, SizePolicy_Pref)
+        self.version_combo.setSizePolicy(
+            SizePolicy_Fixed, SizePolicy_Pref)
         ar.addWidget(self.version_combo)
         self._btn("Install / Upgrade", ar, self._install)
-        self._btn("Dry-run Check",     ar, self._dry_run)
+        self._btn("Dry-run Check", ar, self._dry_run)
         self.conda_chk = QCheckBox("Use conda instead")
         self.conda_chk.setVisible(self.manager.is_conda)
         ar.addWidget(self.conda_chk)
@@ -253,8 +259,10 @@ class PipManagerDialog(QDialog):
 
         rg = QGroupBox("requirements.txt")
         rl = QHBoxLayout(rg)
-        self._btn("Import requirements.txt...", rl, self._import_requirements)
-        self._btn("Export requirements.txt...", rl, self._export_requirements)
+        self._btn("Import requirements.txt...", rl,
+                  self._import_requirements)
+        self._btn("Export requirements.txt...", rl,
+                  self._export_requirements)
         lay.addWidget(rg)
         lay.addStretch()
         return w
@@ -265,9 +273,9 @@ class PipManagerDialog(QDialog):
         w = QWidget()
         lay = QVBoxLayout(w)
         lay.addWidget(QLabel(
-            "Snapshots save your current pip environment as a timestamped\n"
-            "requirements file. Restore one if a bad install breaks QGIS."
-        ))
+            "Snapshots save your current pip environment as a "
+            "timestamped\nrequirements file. Restore one if a bad "
+            "install breaks QGIS."))
         br = QHBoxLayout()
         self._btn("Save Snapshot Now", br, self._save_snapshot)
         lay.addLayout(br)
@@ -279,7 +287,7 @@ class PipManagerDialog(QDialog):
 
         ar = QHBoxLayout()
         self._btn("Restore Selected", ar, self._restore_snapshot)
-        self._btn("Delete Selected",  ar, self._delete_snapshot)
+        self._btn("Delete Selected", ar, self._delete_snapshot)
         lay.addLayout(ar)
         return w
 
@@ -290,8 +298,7 @@ class PipManagerDialog(QDialog):
         lay = QVBoxLayout(w)
         lay.addWidget(QLabel(
             "One-click installation of common GIS / data-science stacks.\n"
-            "Edit presets.json in the plugin folder to add your own."
-        ))
+            "Edit presets.json in the plugin folder to add your own."))
         self.preset_tree = QTreeWidget()
         self.preset_tree.setHeaderLabels(["Preset", "Packages"])
         lay.addWidget(self.preset_tree)
@@ -307,11 +314,13 @@ class PipManagerDialog(QDialog):
         form = QFormLayout()
 
         self.proxy_field = QLineEdit(self._proxy)
-        self.proxy_field.setPlaceholderText("http://user:pass@host:3128")
+        self.proxy_field.setPlaceholderText(
+            "http://proxy.example.com:3128")
         form.addRow("HTTP/HTTPS Proxy:", self.proxy_field)
 
         self.index_url_field = QLineEdit(self._index_url)
-        self.index_url_field.setPlaceholderText("Leave blank for default PyPI")
+        self.index_url_field.setPlaceholderText(
+            "Leave blank for default PyPI")
         form.addRow("Index URL:", self.index_url_field)
 
         self.extra_index_field = QLineEdit(self._extra_index)
@@ -320,14 +329,14 @@ class PipManagerDialog(QDialog):
         form.addRow("Extra Index URL:", self.extra_index_field)
 
         snap_row = QHBoxLayout()
-        self.snapshots_dir_field = QLineEdit(str(self.manager.snapshots_dir))
+        self.snapshots_dir_field = QLineEdit(
+            str(self.manager.snapshots_dir))
         snap_row.addWidget(self.snapshots_dir_field)
         self._btn("Browse...", snap_row, self._browse_snapshots_dir)
         form.addRow("Snapshots folder:", snap_row)
 
         lay.addLayout(form)
 
-        # Python path display (read-only info)
         self.python_path_label = QLabel(
             "Python: {}".format(self.manager.qgis_python_path))
         self.python_path_label.setWordWrap(True)
@@ -336,8 +345,8 @@ class PipManagerDialog(QDialog):
         self._btn("Save Settings", lay, self._save_settings)
 
         pip_v = ".".join(str(x) for x in self.manager.pip_ver)
-        env   = ("conda env detected" if self.manager.is_conda
-                 else "pip / OSGeo4W env")
+        env = ("conda env detected" if self.manager.is_conda
+               else "pip / OSGeo4W env")
         lay.addWidget(QLabel(
             "pip version: {}   |   {}".format(pip_v, env)))
         lay.addStretch()
@@ -366,7 +375,6 @@ class PipManagerDialog(QDialog):
         worker = Worker(self.manager, operation, *args)
         worker.moveToThread(thread)
 
-        # FIX: keep a Python reference so GC doesn't delete the worker
         self._active_workers.append(worker)
         self._active_threads.append(thread)
 
@@ -381,16 +389,19 @@ class PipManagerDialog(QDialog):
                 QMessageBox.critical(self, "Error", m),
             ))
 
-        if on_result:       worker.result.connect(on_result)
-        if on_package_list: worker.package_list.connect(on_package_list)
-        if on_versions:     worker.versions_list.connect(on_versions)
-        if on_pypi_info:    worker.pypi_info.connect(on_pypi_info)
+        if on_result:
+            worker.result.connect(on_result)
+        if on_package_list:
+            worker.package_list.connect(on_package_list)
+        if on_versions:
+            worker.versions_list.connect(on_versions)
+        if on_pypi_info:
+            worker.pypi_info.connect(on_pypi_info)
 
         def _done():
             self._busy(False)
             if on_finished:
                 on_finished()
-            # clean up finished thread/worker
             self._active_threads = [
                 t for t in self._active_threads if t != thread]
             self._active_workers = [
@@ -408,12 +419,13 @@ class PipManagerDialog(QDialog):
 
     def _populate_packages(self):
         self.pkg_tree.clear()
-        self._run_worker("list_packages",
-                         on_package_list=self._update_pkg_tree,
-                         on_error=lambda m: (
-                             self._log("ERROR: {}".format(m)),
-                             self._busy(False),
-                         ))
+        self._run_worker(
+            "list_packages",
+            on_package_list=self._update_pkg_tree,
+            on_error=lambda m: (
+                self._log("ERROR: {}".format(m)),
+                self._busy(False),
+            ))
 
     def _update_pkg_tree(self, packages):
         self.installed_packages = packages
@@ -427,7 +439,8 @@ class PipManagerDialog(QDialog):
         for p in self.installed_packages:
             if ft and ft not in p["name"].lower():
                 continue
-            QTreeWidgetItem(self.pkg_tree, [p["name"], p["version"]])
+            QTreeWidgetItem(
+                self.pkg_tree, [p["name"], p["version"]])
 
     def _pkg_clicked(self, item, _col):
         name = item.text(0)
@@ -446,16 +459,17 @@ class PipManagerDialog(QDialog):
     def _show_details(self):
         name = self.search_field.text().strip()
         if not name:
-            QMessageBox.warning(self, "No package",
-                                "Select or type a package name first.")
+            QMessageBox.warning(
+                self, "No package",
+                "Select or type a package name first.")
             return
         self._run_worker("get_details", name, on_result=self._log)
 
     def _uninstall(self):
         name = self.search_field.text().strip()
         if not name:
-            QMessageBox.warning(self, "No package",
-                                "Select or type a package name.")
+            QMessageBox.warning(
+                self, "No package", "Select or type a package name.")
             return
         if QMessageBox.question(
                 self, "Confirm Uninstall",
@@ -477,7 +491,8 @@ class PipManagerDialog(QDialog):
         self._log("Outdated packages:")
         for p in packages:
             self._log("  {}  installed={}  latest={}".format(
-                p["name"], p["version"], p.get("latest_version", "?")))
+                p["name"], p["version"],
+                p.get("latest_version", "?")))
 
     def _check_conflicts(self):
         self._run_worker("check_conflicts", on_result=self._log)
@@ -502,8 +517,7 @@ class PipManagerDialog(QDialog):
         self.pypi_preview.setPlainText(
             "{}  {}\n{}\nAuthor: {}   Requires Python: {}".format(
                 info["name"], info["version"], info["summary"],
-                info["author"], info["requires_python"])
-        )
+                info["author"], info["requires_python"]))
         self.version_combo.clear()
         self.version_combo.addItem("Fetching versions...")
         self._run_worker("get_versions", info["name"],
@@ -512,7 +526,8 @@ class PipManagerDialog(QDialog):
     def _install(self):
         name = self.search_field.text().strip()
         if not name:
-            QMessageBox.warning(self, "No package", "Enter a package name.")
+            QMessageBox.warning(self, "No package",
+                                "Enter a package name.")
             return
         ver_text = self.version_combo.currentText()
         ver = (None if ver_text in ("Latest", "Fetching versions...", "")
@@ -536,12 +551,14 @@ class PipManagerDialog(QDialog):
         if not ok:
             QMessageBox.information(
                 self, "Restart Needed",
-                "{}\n\n{}\n\nPlease restart QGIS.".format(msg, im_msg))
+                "{}\n\n{}\n\nPlease restart QGIS.".format(
+                    msg, im_msg))
 
     def _dry_run(self):
         name = self.search_field.text().strip()
         if not name:
-            QMessageBox.warning(self, "No package", "Enter a package name.")
+            QMessageBox.warning(self, "No package",
+                                "Enter a package name.")
             return
         ver_text = self.version_combo.currentText()
         ver = (None if ver_text in ("Latest", "Fetching versions...", "")
@@ -612,7 +629,8 @@ class PipManagerDialog(QDialog):
                 self._presets = json.loads(
                     presets_file.read_text(encoding="utf-8"))
             except Exception as exc:
-                self._log("Warning: could not load presets.json: {}".format(exc))
+                self._log(
+                    "Warning: could not load presets.json: {}".format(exc))
         self.preset_tree.clear()
         for p in self._presets:
             QTreeWidgetItem(self.preset_tree, [
@@ -626,9 +644,9 @@ class PipManagerDialog(QDialog):
             QMessageBox.warning(self, "None selected",
                                 "Select a preset to install.")
             return
-        idx    = self.preset_tree.indexOfTopLevelItem(items[0])
+        idx = self.preset_tree.indexOfTopLevelItem(items[0])
         preset = self._presets[idx]
-        pkgs   = preset.get("packages", [])
+        pkgs = preset.get("packages", [])
         if QMessageBox.question(
                 self, "Confirm Preset Install",
                 "Install preset '{}'?\n\nPackages:\n{}".format(
@@ -646,23 +664,24 @@ class PipManagerDialog(QDialog):
     # -- Settings tab ----------------------------------------------------------
 
     def _browse_snapshots_dir(self):
-        d = QFileDialog.getExistingDirectory(self, "Select snapshots folder")
+        d = QFileDialog.getExistingDirectory(
+            self, "Select snapshots folder")
         if d:
             self.snapshots_dir_field.setText(d)
 
     def _save_settings(self):
-        self._proxy       = self.proxy_field.text().strip()
-        self._index_url   = self.index_url_field.text().strip()
+        self._proxy = self.proxy_field.text().strip()
+        self._index_url = self.index_url_field.text().strip()
         self._extra_index = self.extra_index_field.text().strip()
-        snaps             = self.snapshots_dir_field.text().strip()
+        snaps = self.snapshots_dir_field.text().strip()
 
-        self._ss("proxy",           self._proxy)
-        self._ss("index_url",       self._index_url)
+        self._ss("proxy", self._proxy)
+        self._ss("index_url", self._index_url)
         self._ss("extra_index_url", self._extra_index)
-        self._ss("snapshots_dir",   snaps)
+        self._ss("snapshots_dir", snaps)
 
-        self.manager.proxy           = self._proxy
-        self.manager.index_url       = self._index_url
+        self.manager.proxy = self._proxy
+        self.manager.index_url = self._index_url
         self.manager.extra_index_url = self._extra_index
         if snaps:
             self.manager.snapshots_dir = Path(snaps)
@@ -675,11 +694,13 @@ class PipManagerDialog(QDialog):
 
     def _export_log(self):
         path, _ = QFileDialog.getSaveFileName(
-            self, "Export Log", "pip_manager_log.txt", "Text files (*.txt)")
+            self, "Export Log", "pip_manager_log.txt",
+            "Text files (*.txt)")
         if not path:
             return
         try:
-            Path(path).write_text(self.log.toPlainText(), encoding="utf-8")
+            Path(path).write_text(
+                self.log.toPlainText(), encoding="utf-8")
             self._log("Log exported to: {}".format(path))
         except OSError as exc:
             QMessageBox.critical(self, "Error", str(exc))
